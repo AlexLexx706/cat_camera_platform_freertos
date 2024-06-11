@@ -1,6 +1,6 @@
 add_executable(${NAME}
         ICM42688/ICM42688.cpp
-        icm42688_test_interrupt.cpp
+        main.cpp
         )
 
 # Pull in our pico_stdlib which pulls in commonly used features
