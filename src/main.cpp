@@ -1,12 +1,15 @@
 #include "FreeRTOS.h"
 #include "ICM42688/ICM42688.h"
+#include "VL53L0X/VL53L0X.h"
 #include "hardware/gpio.h"
+#include "pico/binary_info.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include "semphr.h"
 #include "task.h"
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #define ENC_A1 8
 #define ENC_B1 9
@@ -17,6 +20,11 @@
 #define ICM42688_IRQ_PIN 22
 #define GYRO_BIAS_TAU 20.f
 
+#define SDA_PIN 6
+#define SCL_PIN 7
+
+static VL53L0X sensor;
+
 volatile static uint32_t packet_time;
 volatile static uint32_t last_packet_time = 0;
 volatile static uint32_t dt = 0;
@@ -25,6 +33,7 @@ volatile static float angles[3] = {0.f};
 volatile static float gyro_bias[3] = {0.f};
 // static float gyro_scale[3] = {1.f, 1.f, 1.0257511014952223f};
 static float gyro_scale[3] = {1.f, 1.f, 1.f};
+volatile static uint16_t rf_range = 0;
 
 typedef struct EncoderState {
     int8_t last_encoded;
@@ -80,8 +89,8 @@ static void process_encoder(void *) {
 static void print_state(void *) {
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000 / 10));
-        printf("%+6.5f %+6.3f %+6.3f %d %d\n", gyro_bias[2], gyro_rate[2],
-               angles[2], enc_1.encoder_value, enc_2.encoder_value);
+        printf("%+6.5f %+6.3f %+6.3f %d %d %u\n", gyro_bias[2], gyro_rate[2],
+               angles[2], enc_1.encoder_value, enc_2.encoder_value, rf_range);
     }
 }
 
@@ -123,6 +132,22 @@ static void process_imu(void *) {
     }
 }
 
+static void process_range(void *) {
+    // Start continuous back-to-back mode (take readings as
+    // fast as possible).  To use continuous timed mode
+    // instead, provide a desired inter-measurement period in
+    // ms (e.g. sensor.startContinuous(100)).
+    sensor.startContinuous();
+
+    while (1) {
+        rf_range = sensor.readRangeContinuousMillimeters();
+        if (sensor.timeoutOccurred()) {
+            printf("range timeout\n");
+        }
+        vTaskDelay(pdMS_TO_TICKS(1000 / 10));
+    }
+}
+
 int main() {
     stdio_init_all();
     sleep_ms(2000);
@@ -130,7 +155,7 @@ int main() {
     encoder_semaphore = xSemaphoreCreateBinary();
 
     if (imu_data_semaphore != NULL && encoder_semaphore != NULL) {
-        // init encoder
+        // 1. init encoder
         gpio_init(ENC_A1);
         gpio_init(ENC_A2);
         gpio_init(ENC_B1);
@@ -163,7 +188,27 @@ int main() {
             ENC_B2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
             &gpio_callback);
 
-        // start communication with IMU
+        // 2. init range-finder:
+        i2c_init(&i2c1_inst, 400 * 1000);
+        gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);
+        gpio_set_function(SCL_PIN, GPIO_FUNC_I2C);
+        gpio_pull_up(SDA_PIN);
+        gpio_pull_up(SCL_PIN);
+        // Make the I2C pins available to picotool
+        bi_decl(bi_2pins_with_func(SDA_PIN, SCL_PIN, GPIO_FUNC_I2C));
+
+        sensor.setBus(&i2c1_inst);
+        sensor.setTimeout(500);
+
+        if (!sensor.init()) {
+            printf("Failed to detect and initialize sensor!\n");
+            while (1) {
+                printf("Failed to detect and initialize sensor!\n");
+                sleep_ms(1000);
+            }
+        }
+
+        // 3. start communication with IMU
         int status = IMU.begin();
         gpio_set_irq_enabled_with_callback(ICM42688_IRQ_PIN, GPIO_IRQ_EDGE_RISE,
                                            true, &gpio_callback);
@@ -183,6 +228,7 @@ int main() {
 
         xTaskCreate(process_imu, "imu", 1024, NULL, 3, NULL);
         xTaskCreate(process_encoder, "encoder", 1024, NULL, 2, NULL);
+        xTaskCreate(process_range, "rf", 1024, NULL, 1, NULL);
         xTaskCreate(print_state, "print", 1024, NULL, 1, NULL);
 
         // enabling the data ready interrupt
