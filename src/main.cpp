@@ -1,7 +1,8 @@
 #include "FreeRTOS.h"
-#include "ICM42688/ICM42688.h"
 #include "VL53L0X/VL53L0X.h"
+#include "cmd_parser.h"
 #include "hardware/gpio.h"
+#include "imu_processor/imu_porcessor.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
@@ -10,7 +11,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include "cmd_parser.h"
 
 #define ENC_A1 8
 #define ENC_B1 9
@@ -19,7 +19,6 @@
 #define ENC_B2 11
 
 #define ICM42688_IRQ_PIN 22
-#define GYRO_BIAS_TAU 20.f
 
 #define SDA_PIN 6
 #define SCL_PIN 7
@@ -28,23 +27,16 @@
 
 static VL53L0X sensor;
 static CommandParser command_parser;
-volatile static uint32_t mode=0;
-
+volatile static uint32_t mode = 0;
 
 volatile static uint32_t packet_time;
-volatile static uint32_t last_packet_time = 0;
 volatile static uint32_t dt = 0;
-volatile static float gyro_rate[3] = {0.f};
-volatile static float angles[3] = {0.f};
-volatile static float gyro_bias[3] = {0.f};
-// static float gyro_scale[3] = {1.f, 1.f, 1.0257511014952223f};
-static float gyro_scale[3] = {1.f, 1.f, 1.f};
 volatile static uint16_t rf_range = 0;
 
-typedef struct EncoderState {
+struct EncoderState {
     int8_t last_encoded;
     int32_t encoder_value;
-} EncoderState;
+};
 
 static EncoderState enc_1 = {};
 static EncoderState enc_2 = {};
@@ -52,12 +44,13 @@ static EncoderState enc_2 = {};
 static SemaphoreHandle_t imu_data_semaphore;
 static SemaphoreHandle_t encoder_semaphore;
 volatile static bool is_enc1;
-static ICM42688 IMU;
+
+IMUProcessor imu_processor;
 
 static void gpio_callback(uint gpio, uint32_t events) {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    // IMU Interrupt pin
+    // imu Interrupt pin
     if (gpio == ICM42688_IRQ_PIN) {
         packet_time = time_us_32();
         xSemaphoreGiveFromISR(imu_data_semaphore, &xHigherPriorityTaskWoken);
@@ -95,8 +88,9 @@ static void process_encoder(void *) {
 static void print_state(void *) {
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000 / 10));
-        printf("%+6.5f %+6.3f %+6.3f %d %d %u\n", gyro_bias[2], gyro_rate[2],
-                     angles[2], enc_1.encoder_value, enc_2.encoder_value, rf_range);
+        printf("%+6.5f %+6.3f %+6.3f %d %d %u\n", imu_processor.gyro_bias[2],
+               imu_processor.gyro_rate[2], imu_processor.angles[2],
+               enc_1.encoder_value, enc_2.encoder_value, rf_range);
     }
 }
 
@@ -104,37 +98,7 @@ static void process_imu(void *) {
     for (;;) {
         /* Block on the queue to wait for data to arrive. */
         xSemaphoreTake(imu_data_semaphore, portMAX_DELAY);
-        // read the sensor
-        IMU.getAGT();
-
-        if (last_packet_time != 0) {
-            dt = (packet_time - last_packet_time);
-            last_packet_time = packet_time;
-            float dt_f = dt / 1e6;
-            float row_gyro_rate[3];
-            row_gyro_rate[0] = IMU.gyrX() * gyro_scale[0];
-            row_gyro_rate[1] = IMU.gyrY() * gyro_scale[1];
-            row_gyro_rate[2] = IMU.gyrZ() * gyro_scale[2];
-
-            gyro_rate[0] = row_gyro_rate[0] - gyro_bias[0];
-            gyro_rate[1] = row_gyro_rate[1] - gyro_bias[1];
-            gyro_rate[2] = row_gyro_rate[2] - gyro_bias[2];
-
-            // //used for calculate bias
-            if (fabs(gyro_rate[2]) < 0.1f) {
-                // update gyro bias
-                float factor = dt_f / GYRO_BIAS_TAU;
-                gyro_bias[0] += factor * (row_gyro_rate[0] - gyro_bias[0]);
-                gyro_bias[1] += factor * (row_gyro_rate[1] - gyro_bias[1]);
-                gyro_bias[2] += factor * (row_gyro_rate[2] - gyro_bias[2]);
-            } else {
-                angles[0] += gyro_rate[0] * dt_f;
-                angles[1] += gyro_rate[1] * dt_f;
-                angles[2] += gyro_rate[2] * dt_f;
-            }
-        } else {
-            last_packet_time = packet_time;
-        }
+        imu_processor.process(packet_time);
     }
 }
 
@@ -168,8 +132,8 @@ static void process_cmd(void *) {
     }
 }
 
-//write error to port
-void print_er(const char * prefix, const char * msg) {
+// write error to port
+void print_er(const char *prefix, const char *msg) {
     assert(prefix);
     assert(msg);
 
@@ -177,17 +141,18 @@ void print_er(const char * prefix, const char * msg) {
     int prefix_len = strlen(prefix);
     int len;
     if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\r\n", strlen(msg) + prefix_len + 2, prefix, msg);
+        len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\r\n",
+                       strlen(msg) + prefix_len + 2, prefix, msg);
     } else {
-        len = snprintf(buffer, sizeof(buffer), "ER%03X%s\r\n", strlen(msg), msg);
+        len =
+            snprintf(buffer, sizeof(buffer), "ER%03X%s\r\n", strlen(msg), msg);
     }
     puts_raw(buffer);
     stdio_flush();
 }
 
-
-//write responce msg
-void print_re(const char * prefix, const char * msg) {
+// write responce msg
+void print_re(const char *prefix, const char *msg) {
     assert(prefix);
     assert(msg);
 
@@ -197,46 +162,64 @@ void print_re(const char * prefix, const char * msg) {
     int len;
 
     if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "RE%03X%%%s%%%s\r\n", strlen(prefix) + msg_len + 2, prefix, msg);
+        len = snprintf(buffer, sizeof(buffer), "RE%03X%%%s%%%s\r\n",
+                       strlen(prefix) + msg_len + 2, prefix, msg);
         puts_raw(buffer);
     } else if (msg_len) {
-        len = snprintf(buffer, sizeof(buffer), "RE%03X%s\r\n",  msg_len, msg);
+        len = snprintf(buffer, sizeof(buffer), "RE%03X%s\r\n", msg_len, msg);
         puts_raw(buffer);
     }
     stdio_flush();
 }
 
-void command_parser_cmd_cb(const char * prefix, const char * cmd, const char * parameter, const char * value) {
-    //echo command
+/**
+ * Commands:
+ * /par/imu/calb/bias/start
+ * /par/imu/calb/bias/stop
+ * /par/imu/calb/bias/clear
+ * /par/imu/calb/bias/state
+ * /par/imu/calb/bias/x
+ * /par/imu/calb/bias/y
+ * /par/imu/calb/bias/z
+ *
+ * /par/imu/calb/scale/start
+ * /par/imu/calb/scale/stop
+ * /par/imu/calb/scale/clear
+ * /par/imu/calb/scale/state
+ * /par/imu/calb/scale/z
+ */
+void command_parser_cmd_cb(const char *prefix, const char *cmd,
+                           const char *parameter, const char *value) {
+    // echo command
     if (!strlen(prefix) && !strlen(cmd)) {
         print_re(prefix, "%%");
         return;
     }
 
-    //cheking print command
+    // cheking print command
     if (strcmp(cmd, "print") == 0) {
-        //print current version
+        // print current version
         if (strcmp(parameter, "/par/version") == 0) {
             print_re(prefix, VERSION);
-        //print author
-        } else if (strcmp(parameter, "/par/author") == 0)  {
+            // print author
+        } else if (strcmp(parameter, "/par/author") == 0) {
             print_re(prefix, AUTHOR);
-        //print current mode: auto or manual
-        } else if (strcmp(parameter, "/par/mode") == 0)  {
+            // print current mode: auto or manual
+        } else if (strcmp(parameter, "/par/mode") == 0) {
             char buffer[10];
             snprintf(buffer, sizeof(buffer), "%d", mode);
             print_re(prefix, buffer);
         } else {
             print_er(prefix, "{6,wrong parameter}");
         }
-    //process set commands
+        // process set commands
     } else if (strcmp(cmd, "set") == 0) {
-        //wrong value
+        // wrong value
         if (value == nullptr) {
             print_er(prefix, "{7,wrong value}");
             return;
         }
-        //set mode
+        // set mode
         if (strcmp(parameter, "/par/mode") == 0) {
             int _mode = atoi(value);
             if (_mode == 0) {
@@ -248,11 +231,11 @@ void command_parser_cmd_cb(const char * prefix, const char * cmd, const char * p
             } else {
                 print_er(prefix, "{7,wrong value}");
             }
-        //set current finger state for manual mode
+            // set current finger state for manual mode
         } else {
             print_er(prefix, "{6,wrong parameter}");
         }
-    //wrong command
+        // wrong command
     } else {
         print_er(prefix, "{8,wrong command}");
     }
@@ -285,16 +268,20 @@ int main() {
         gpio_pull_up(ENC_B2);
 
         gpio_set_irq_enabled_with_callback(
-                ENC_A1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
+            ENC_A1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
+            &gpio_callback);
 
         gpio_set_irq_enabled_with_callback(
-                ENC_B1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
+            ENC_B1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
+            &gpio_callback);
 
         gpio_set_irq_enabled_with_callback(
-                ENC_A2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
+            ENC_A2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
+            &gpio_callback);
 
         gpio_set_irq_enabled_with_callback(
-                ENC_B2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
+            ENC_B2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
+            &gpio_callback);
 
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);
@@ -316,24 +303,7 @@ int main() {
             }
         }
 
-        // 3. start communication with IMU
-        int status = IMU.begin();
-        gpio_set_irq_enabled_with_callback(
-            ICM42688_IRQ_PIN, GPIO_IRQ_EDGE_RISE,
-            true, &gpio_callback);
-
-        if (status < 0) {
-            printf("IMU initialization unsuccessful\n");
-            printf("Check IMU wiring or try cycling power\n");
-            printf("Status: %d\n", status);
-        }
-
-        // set output data rate to 12.5 Hz
-        IMU.setAccelODR(ICM42688::odr1k);
-        IMU.setGyroODR(ICM42688::odr1k);
-        IMU.setGyroFS(ICM42688::dps250);
-        IMU.setAccelFS(ICM42688::gpm2);
-        IMU.enableDataReadyInterrupt();
+        imu_processor.init(ICM42688_IRQ_PIN, gpio_callback);
 
         xTaskCreate(process_imu, "imu", 1024, NULL, 3, NULL);
         xTaskCreate(process_encoder, "encoder", 1024, NULL, 2, NULL);
