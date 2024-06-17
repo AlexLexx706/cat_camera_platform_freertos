@@ -10,6 +10,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include "cmd_parser.h"
 
 #define ENC_A1 8
 #define ENC_B1 9
@@ -22,8 +23,13 @@
 
 #define SDA_PIN 6
 #define SCL_PIN 7
+#define VERSION "0.1"
+#define AUTHOR "Alexlexx1@gmai.com"
 
 static VL53L0X sensor;
+static CommandParser command_parser;
+volatile static uint32_t mode=0;
+
 
 volatile static uint32_t packet_time;
 volatile static uint32_t last_packet_time = 0;
@@ -90,7 +96,7 @@ static void print_state(void *) {
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000 / 10));
         printf("%+6.5f %+6.3f %+6.3f %d %d %u\n", gyro_bias[2], gyro_rate[2],
-               angles[2], enc_1.encoder_value, enc_2.encoder_value, rf_range);
+                     angles[2], enc_1.encoder_value, enc_2.encoder_value, rf_range);
     }
 }
 
@@ -134,7 +140,7 @@ static void process_imu(void *) {
 
 static void process_range(void *) {
     // Start continuous back-to-back mode (take readings as
-    // fast as possible).  To use continuous timed mode
+    // fast as possible). To use continuous timed mode
     // instead, provide a desired inter-measurement period in
     // ms (e.g. sensor.startContinuous(100)).
     sensor.startContinuous();
@@ -148,8 +154,114 @@ static void process_range(void *) {
     }
 }
 
+static void process_cmd(void *) {
+    int symbol;
+    for (;;) {
+        symbol = getchar_timeout_us(0);
+
+        if (symbol == PICO_ERROR_TIMEOUT) {
+            vTaskDelay(pdMS_TO_TICKS(1));
+            // new symbol send back
+        } else {
+            command_parser.process_symbol(symbol);
+        }
+    }
+}
+
+//write error to port
+void print_er(const char * prefix, const char * msg) {
+    assert(prefix);
+    assert(msg);
+
+    char buffer[60];
+    int prefix_len = strlen(prefix);
+    int len;
+    if (prefix_len) {
+        len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\r\n", strlen(msg) + prefix_len + 2, prefix, msg);
+    } else {
+        len = snprintf(buffer, sizeof(buffer), "ER%03X%s\r\n", strlen(msg), msg);
+    }
+    puts_raw(buffer);
+    stdio_flush();
+}
+
+
+//write responce msg
+void print_re(const char * prefix, const char * msg) {
+    assert(prefix);
+    assert(msg);
+
+    char buffer[60];
+    int prefix_len = strlen(prefix);
+    int msg_len = strlen(msg);
+    int len;
+
+    if (prefix_len) {
+        len = snprintf(buffer, sizeof(buffer), "RE%03X%%%s%%%s\r\n", strlen(prefix) + msg_len + 2, prefix, msg);
+        puts_raw(buffer);
+    } else if (msg_len) {
+        len = snprintf(buffer, sizeof(buffer), "RE%03X%s\r\n",  msg_len, msg);
+        puts_raw(buffer);
+    }
+    stdio_flush();
+}
+
+void command_parser_cmd_cb(const char * prefix, const char * cmd, const char * parameter, const char * value) {
+    //echo command
+    if (!strlen(prefix) && !strlen(cmd)) {
+        print_re(prefix, "%%");
+        return;
+    }
+
+    //cheking print command
+    if (strcmp(cmd, "print") == 0) {
+        //print current version
+        if (strcmp(parameter, "/par/version") == 0) {
+            print_re(prefix, VERSION);
+        //print author
+        } else if (strcmp(parameter, "/par/author") == 0)  {
+            print_re(prefix, AUTHOR);
+        //print current mode: auto or manual
+        } else if (strcmp(parameter, "/par/mode") == 0)  {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%d", mode);
+            print_re(prefix, buffer);
+        } else {
+            print_er(prefix, "{6,wrong parameter}");
+        }
+    //process set commands
+    } else if (strcmp(cmd, "set") == 0) {
+        //wrong value
+        if (value == nullptr) {
+            print_er(prefix, "{7,wrong value}");
+            return;
+        }
+        //set mode
+        if (strcmp(parameter, "/par/mode") == 0) {
+            int _mode = atoi(value);
+            if (_mode == 0) {
+                mode = 0;
+                print_re(prefix, "");
+            } else if (_mode == 1) {
+                mode = 1;
+                print_re(prefix, "");
+            } else {
+                print_er(prefix, "{7,wrong value}");
+            }
+        //set current finger state for manual mode
+        } else {
+            print_er(prefix, "{6,wrong parameter}");
+        }
+    //wrong command
+    } else {
+        print_er(prefix, "{8,wrong command}");
+    }
+}
+
 int main() {
     stdio_init_all();
+    command_parser.set_callback(print_er, command_parser_cmd_cb);
+
     sleep_ms(2000);
     imu_data_semaphore = xSemaphoreCreateBinary();
     encoder_semaphore = xSemaphoreCreateBinary();
@@ -173,20 +285,16 @@ int main() {
         gpio_pull_up(ENC_B2);
 
         gpio_set_irq_enabled_with_callback(
-            ENC_A1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
-            &gpio_callback);
+                ENC_A1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
 
         gpio_set_irq_enabled_with_callback(
-            ENC_B1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
-            &gpio_callback);
+                ENC_B1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
 
         gpio_set_irq_enabled_with_callback(
-            ENC_A2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
-            &gpio_callback);
+                ENC_A2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
 
         gpio_set_irq_enabled_with_callback(
-            ENC_B2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
-            &gpio_callback);
+                ENC_B2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
 
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);
@@ -210,8 +318,9 @@ int main() {
 
         // 3. start communication with IMU
         int status = IMU.begin();
-        gpio_set_irq_enabled_with_callback(ICM42688_IRQ_PIN, GPIO_IRQ_EDGE_RISE,
-                                           true, &gpio_callback);
+        gpio_set_irq_enabled_with_callback(
+            ICM42688_IRQ_PIN, GPIO_IRQ_EDGE_RISE,
+            true, &gpio_callback);
 
         if (status < 0) {
             printf("IMU initialization unsuccessful\n");
@@ -229,7 +338,8 @@ int main() {
         xTaskCreate(process_imu, "imu", 1024, NULL, 3, NULL);
         xTaskCreate(process_encoder, "encoder", 1024, NULL, 2, NULL);
         xTaskCreate(process_range, "rf", 1024, NULL, 1, NULL);
-        xTaskCreate(print_state, "print", 1024, NULL, 1, NULL);
+        // xTaskCreate(print_state, "print", 1024, NULL, 1, NULL);
+        xTaskCreate(process_cmd, "echo", 1024, NULL, 1, NULL);
 
         // enabling the data ready interrupt
         vTaskStartScheduler();
