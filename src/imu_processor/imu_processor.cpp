@@ -29,36 +29,24 @@ void IMUProcessor::process(uint32_t packet_time) {
 
     if (last_packet_time != 0) {
         float dt = (packet_time - last_packet_time) / 1e6;
-
-        gyro_rate[0] = imu.gyrX() - gyro_bias[0];
-        gyro_rate[1] = imu.gyrY() - gyro_bias[1];
-        gyro_rate[2] = imu.gyrZ() - gyro_bias[2];
+        Vector3D row_rate = {imu.gyrX(), imu.gyrY(), imu.gyrZ()};
+        gyro_rate = row_rate - gyro_bias;
 
         // bias calibration
         if (state == BiasClb) {
-            float factor = dt / GYRO_BIAS_TAU;
-            gyro_bias[0] += factor * (imu.gyrX() - gyro_bias[0]);
-            gyro_bias[1] += factor * (imu.gyrY() - gyro_bias[1]);
-            gyro_bias[2] += factor * (imu.gyrZ() - gyro_bias[2]);
+            gyro_bias += (row_rate - gyro_bias) * (dt / GYRO_BIAS_TAU);
             // IDE state
         } else {
             // apply scale
-            gyro_rate[0] *= gyro_scale[0];
-            gyro_rate[1] *= gyro_scale[1];
-            gyro_rate[2] *= gyro_scale[2];
+            gyro_rate *= gyro_scale;
 
             // used for calculate bias
             if (fabs(gyro_rate[2]) < 0.1f) {
                 // update gyro bias
-                float factor = dt / GYRO_BIAS_TAU;
-                gyro_bias[0] += factor * (imu.gyrX() - gyro_bias[0]);
-                gyro_bias[1] += factor * (imu.gyrY() - gyro_bias[1]);
-                gyro_bias[2] += factor * (imu.gyrZ() - gyro_bias[2]);
+                gyro_bias += (row_rate - gyro_bias) * (dt / GYRO_BIAS_TAU);
                 // intergrate angles
             } else {
-                angles[0] += gyro_rate[0] * dt;
-                angles[1] += gyro_rate[1] * dt;
-                angles[2] += gyro_rate[2] * dt;
+                angles += gyro_rate * dt;
             }
         }
     }
@@ -68,19 +56,14 @@ void IMUProcessor::process(uint32_t packet_time) {
 void IMUProcessor::start_bias_calibration() {
     state = BiasClb;
     // reset biases
-    gyro_bias[0] = 0.;
-    gyro_bias[1] = 0.;
-    gyro_bias[2] = 0.;
+    gyro_bias = {0.};
 }
 
 bool IMUProcessor::stop_bias_calibration() {
     if (state != BiasClb) {
         return false;
     }
-
-    res_gyro_bias[0] = gyro_bias[0];
-    res_gyro_bias[1] = gyro_bias[1];
-    res_gyro_bias[2] = gyro_bias[2];
+    res_gyro_bias = gyro_bias;
     state == Ide;
     return true;
 }

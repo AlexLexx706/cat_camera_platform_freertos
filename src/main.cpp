@@ -308,8 +308,8 @@ int main() {
         xTaskCreate(process_imu, "imu", 1024, NULL, 3, NULL);
         xTaskCreate(process_encoder, "encoder", 1024, NULL, 2, NULL);
         xTaskCreate(process_range, "rf", 1024, NULL, 1, NULL);
-        // xTaskCreate(print_state, "print", 1024, NULL, 1, NULL);
-        xTaskCreate(process_cmd, "echo", 1024, NULL, 1, NULL);
+        xTaskCreate(print_state, "print", 1024, NULL, 1, NULL);
+        //xTaskCreate(process_cmd, "echo", 1024, NULL, 1, NULL);
 
         // enabling the data ready interrupt
         vTaskStartScheduler();
