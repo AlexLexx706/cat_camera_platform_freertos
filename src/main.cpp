@@ -1,8 +1,8 @@
 #include "FreeRTOS.h"
 #include "VL53L0X/VL53L0X.h"
-#include "cmd_parser.h"
 #include "hardware/gpio.h"
 #include "imu_processor/imu_porcessor.h"
+#include "commad_processor/command_processor.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
@@ -22,11 +22,8 @@
 
 #define SDA_PIN 6
 #define SCL_PIN 7
-#define VERSION "0.1"
-#define AUTHOR "Alexlexx1@gmai.com"
 
 static VL53L0X sensor;
-static CommandParser command_parser;
 volatile static uint32_t mode = 0;
 
 volatile static uint32_t packet_time;
@@ -127,123 +124,14 @@ static void process_cmd(void *) {
             vTaskDelay(pdMS_TO_TICKS(1));
             // new symbol send back
         } else {
-            command_parser.process_symbol(symbol);
+            CommandProcessor::process(symbol);
         }
-    }
-}
-
-// write error to port
-void print_er(const char *prefix, const char *msg) {
-    assert(prefix);
-    assert(msg);
-
-    char buffer[60];
-    int prefix_len = strlen(prefix);
-    int len;
-    if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\r\n",
-                       strlen(msg) + prefix_len + 2, prefix, msg);
-    } else {
-        len =
-            snprintf(buffer, sizeof(buffer), "ER%03X%s\r\n", strlen(msg), msg);
-    }
-    puts_raw(buffer);
-    stdio_flush();
-}
-
-// write responce msg
-void print_re(const char *prefix, const char *msg) {
-    assert(prefix);
-    assert(msg);
-
-    char buffer[60];
-    int prefix_len = strlen(prefix);
-    int msg_len = strlen(msg);
-    int len;
-
-    if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "RE%03X%%%s%%%s\r\n",
-                       strlen(prefix) + msg_len + 2, prefix, msg);
-        puts_raw(buffer);
-    } else if (msg_len) {
-        len = snprintf(buffer, sizeof(buffer), "RE%03X%s\r\n", msg_len, msg);
-        puts_raw(buffer);
-    }
-    stdio_flush();
-}
-
-/**
- * Commands:
- * /par/imu/calb/bias/start
- * /par/imu/calb/bias/stop
- * /par/imu/calb/bias/clear
- * /par/imu/calb/bias/state
- * /par/imu/calb/bias/x
- * /par/imu/calb/bias/y
- * /par/imu/calb/bias/z
- *
- * /par/imu/calb/scale/start
- * /par/imu/calb/scale/stop
- * /par/imu/calb/scale/clear
- * /par/imu/calb/scale/state
- * /par/imu/calb/scale/z
- */
-void command_parser_cmd_cb(const char *prefix, const char *cmd,
-                           const char *parameter, const char *value) {
-    // echo command
-    if (!strlen(prefix) && !strlen(cmd)) {
-        print_re(prefix, "%%");
-        return;
-    }
-
-    // cheking print command
-    if (strcmp(cmd, "print") == 0) {
-        // print current version
-        if (strcmp(parameter, "/par/version") == 0) {
-            print_re(prefix, VERSION);
-            // print author
-        } else if (strcmp(parameter, "/par/author") == 0) {
-            print_re(prefix, AUTHOR);
-            // print current mode: auto or manual
-        } else if (strcmp(parameter, "/par/mode") == 0) {
-            char buffer[10];
-            snprintf(buffer, sizeof(buffer), "%d", mode);
-            print_re(prefix, buffer);
-        } else {
-            print_er(prefix, "{6,wrong parameter}");
-        }
-        // process set commands
-    } else if (strcmp(cmd, "set") == 0) {
-        // wrong value
-        if (value == nullptr) {
-            print_er(prefix, "{7,wrong value}");
-            return;
-        }
-        // set mode
-        if (strcmp(parameter, "/par/mode") == 0) {
-            int _mode = atoi(value);
-            if (_mode == 0) {
-                mode = 0;
-                print_re(prefix, "");
-            } else if (_mode == 1) {
-                mode = 1;
-                print_re(prefix, "");
-            } else {
-                print_er(prefix, "{7,wrong value}");
-            }
-            // set current finger state for manual mode
-        } else {
-            print_er(prefix, "{6,wrong parameter}");
-        }
-        // wrong command
-    } else {
-        print_er(prefix, "{8,wrong command}");
     }
 }
 
 int main() {
     stdio_init_all();
-    command_parser.set_callback(print_er, command_parser_cmd_cb);
+    CommandProcessor::init();
 
     sleep_ms(2000);
     imu_data_semaphore = xSemaphoreCreateBinary();
@@ -308,8 +196,8 @@ int main() {
         xTaskCreate(process_imu, "imu", 1024, NULL, 3, NULL);
         xTaskCreate(process_encoder, "encoder", 1024, NULL, 2, NULL);
         xTaskCreate(process_range, "rf", 1024, NULL, 1, NULL);
-        xTaskCreate(print_state, "print", 1024, NULL, 1, NULL);
-        //xTaskCreate(process_cmd, "echo", 1024, NULL, 1, NULL);
+        // xTaskCreate(print_state, "print", 1024, NULL, 1, NULL);
+        xTaskCreate(process_cmd, "echo", 1024, NULL, 1, NULL);
 
         // enabling the data ready interrupt
         vTaskStartScheduler();

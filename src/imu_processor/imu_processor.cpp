@@ -44,7 +44,7 @@ void IMUProcessor::process(uint32_t packet_time) {
             if (fabs(gyro_rate[2]) < 0.1f) {
                 // update gyro bias
                 gyro_bias += (row_rate - gyro_bias) * (dt / GYRO_BIAS_TAU);
-                // intergrate angles
+                // integrate angles
             } else {
                 angles += gyro_rate * dt;
             }
