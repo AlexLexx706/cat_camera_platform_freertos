@@ -11,7 +11,7 @@ class IMUProcessor {
     bool allow_dynamic_bias = true;
     float bias_rate_threshold = 0.1f;
     float gyro_bias_tau = 20.f;
-    int debug_level = 1;
+    int debug_level = 0;
     uint32_t last_print_time = 0;
     uint32_t print_period = 100000;
 
@@ -20,9 +20,9 @@ class IMUProcessor {
     Vector3D angles = {0.f};
     Vector3D gyro_bias = {0.f};
     Vector3D internal_gyro_bias = {0.f};
+    Vector3D gyro_scale = {1.f, 1.f, 1.f};
 
  public:
-    Vector3D gyro_scale = {1.f, 1.f, 1.f};
     void init(int irq_pin, gpio_irq_callback_t gpio_irq_callback);
     void process(uint32_t packet_time);
     void start_bias_calibration();

@@ -2,6 +2,7 @@
 #include "VL53L0X/VL53L0X.h"
 #include "hardware/gpio.h"
 #include "imu_processor/imu_porcessor.h"
+#include "encoder/encoder.h"
 #include "commad_processor/command_processor.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
@@ -27,32 +28,26 @@ static VL53L0X sensor;
 volatile static uint32_t mode = 0;
 
 volatile static uint32_t packet_time;
+volatile static uint32_t encoder_time;
 volatile static uint32_t dt = 0;
 volatile static uint16_t rf_range = 0;
-
-struct EncoderState {
-    int8_t last_encoded;
-    int32_t encoder_value;
-};
-
-static EncoderState enc_1 = {};
-static EncoderState enc_2 = {};
 
 static SemaphoreHandle_t imu_data_semaphore;
 static SemaphoreHandle_t encoder_semaphore;
 volatile static bool is_enc1;
 
 IMUProcessor imu_processor;
+Encoder encoder;
 
 static void gpio_callback(uint gpio, uint32_t events) {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
     // imu Interrupt pin
     if (gpio == ICM42688_IRQ_PIN) {
         packet_time = time_us_32();
         xSemaphoreGiveFromISR(imu_data_semaphore, &xHigherPriorityTaskWoken);
         // process encoder
     } else {
+        encoder_time = time_us_32();
         is_enc1 = (gpio == ENC_A1 || gpio == ENC_B1);
         xSemaphoreGiveFromISR(encoder_semaphore, &xHigherPriorityTaskWoken);
     }
@@ -62,23 +57,7 @@ static void gpio_callback(uint gpio, uint32_t events) {
 static void process_encoder(void *) {
     for (;;) {
         xSemaphoreTake(encoder_semaphore, portMAX_DELAY);
-
-        EncoderState *state;
-        int encoded;
-        if (is_enc1) {
-            state = &enc_1;
-            encoded = (gpio_get(ENC_A1) << 1) | gpio_get(ENC_B1);
-        } else {
-            state = &enc_2;
-            encoded = (gpio_get(ENC_A2) << 1) | gpio_get(ENC_B2);
-        }
-        int sum = (state->last_encoded << 2) | encoded;
-
-        if (sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011)
-            state->encoder_value += 1;
-        if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000)
-            state->encoder_value -= 1;
-        state->last_encoded = encoded;
+        encoder.process(encoder_time, is_enc1);
     }
 }
 
@@ -128,38 +107,7 @@ int main() {
     encoder_semaphore = xSemaphoreCreateBinary();
 
     if (imu_data_semaphore != NULL && encoder_semaphore != NULL) {
-        // 1. init encoder
-        gpio_init(ENC_A1);
-        gpio_init(ENC_A2);
-        gpio_init(ENC_B1);
-        gpio_init(ENC_B2);
-
-        gpio_set_dir(ENC_A1, GPIO_IN);
-        gpio_set_dir(ENC_A2, GPIO_IN);
-        gpio_set_dir(ENC_B1, GPIO_IN);
-        gpio_set_dir(ENC_B2, GPIO_IN);
-
-        // https://cdn-shop.adafruit.com/product-files/4640/n20+motors_C15011+6V.pdf
-        gpio_pull_up(ENC_A1);
-        gpio_pull_up(ENC_A2);
-        gpio_pull_up(ENC_B1);
-        gpio_pull_up(ENC_B2);
-
-        gpio_set_irq_enabled_with_callback(
-            ENC_A1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
-            &gpio_callback);
-
-        gpio_set_irq_enabled_with_callback(
-            ENC_B1, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
-            &gpio_callback);
-
-        gpio_set_irq_enabled_with_callback(
-            ENC_A2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
-            &gpio_callback);
-
-        gpio_set_irq_enabled_with_callback(
-            ENC_B2, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
-            &gpio_callback);
+        encoder.init(ENC_A1, ENC_B1, ENC_A2, ENC_B2, gpio_callback);
 
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);

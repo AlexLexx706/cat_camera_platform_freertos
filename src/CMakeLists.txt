@@ -5,6 +5,7 @@ add_executable(${NAME}
         commad_processor/command_processor.cpp
         flash_store/flash_store.cpp
         main.cpp
+        encoder/encoder.cpp
         )
 
 # Pull in our pico_stdlib which pulls in commonly used features
