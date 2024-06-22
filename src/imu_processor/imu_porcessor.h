@@ -8,18 +8,20 @@ class IMUProcessor {
 
     ICM42688 imu;
     uint32_t last_packet_time = 0;
-    bool allow_dynamic_bias = false;
+    bool allow_dynamic_bias = true;
     float bias_rate_threshold = 0.1f;
     float gyro_bias_tau = 20.f;
+    int debug_level = 1;
+    uint32_t last_print_time = 0;
+    uint32_t print_period = 100000;
 
- public:
     enum State { Ide = 0, BiasClb, ScaleClb } state = Ide;
-
     Vector3D gyro_rate = {0.f};
     Vector3D angles = {0.f};
     Vector3D gyro_bias = {0.f};
     Vector3D internal_gyro_bias = {0.f};
 
+ public:
     Vector3D gyro_scale = {1.f, 1.f, 1.f};
     void init(int irq_pin, gpio_irq_callback_t gpio_irq_callback);
     void process(uint32_t packet_time);
@@ -30,6 +32,10 @@ class IMUProcessor {
     const Vector3D & get_bias() const { return gyro_bias;}
     void set_gyro_bias_tau(float tau) {gyro_bias_tau = tau;}
     float get_gyro_bias_tau() const {return gyro_bias_tau;}
+    void set_debug_level(int _debug) {debug_level = _debug;}
+    int get_debug_level() const {return debug_level;}
+    void set_angles(const Vector3D & _angles) {angles = _angles;}
+    const Vector3D & get_angles() const {return angles;}
 };
 extern IMUProcessor imu_processor;
 #endif // IMU_PORCESSOR_H

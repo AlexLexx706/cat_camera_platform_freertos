@@ -49,6 +49,12 @@ void IMUProcessor::process(uint32_t packet_time) {
         // bias calibration
         if (state == BiasClb) {
             gyro_bias += (row_rate - gyro_bias) * (dt / gyro_bias_tau);
+
+            //print debug
+            if (debug_level > 0 && (packet_time - last_print_time) > print_period) {
+                last_print_time = packet_time;
+                printf("%f %f %f\n", gyro_bias.x0, gyro_bias.x1, gyro_bias.x2);
+            }
             // IDE state
         } else {
             gyro_rate = row_rate - (gyro_bias + internal_gyro_bias);
@@ -67,6 +73,17 @@ void IMUProcessor::process(uint32_t packet_time) {
             } else {
                 angles += gyro_rate * dt;
             }
+            //print debug
+            if (debug_level > 0 && (packet_time - last_print_time) > print_period) {
+                last_print_time = packet_time;
+                printf(
+                    "%f %f %f %f %f %f %f %f %f %f %f %f\n",
+                    gyro_bias.x0, gyro_bias.x1, gyro_bias.x2,
+                    internal_gyro_bias.x0, internal_gyro_bias.x1, internal_gyro_bias.x2,
+                    angles.x0, angles.x1, angles.x2,
+                    gyro_rate.x0, gyro_rate.x1, gyro_rate.x2);
+            }
+
         }
     }
     last_packet_time = packet_time;

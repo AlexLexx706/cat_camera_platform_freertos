@@ -82,15 +82,6 @@ static void process_encoder(void *) {
     }
 }
 
-static void print_state(void *) {
-    while (true) {
-        vTaskDelay(pdMS_TO_TICKS(1000 / 10));
-        printf("%+6.5f %+6.3f %+6.3f %d %d %u\n", imu_processor.gyro_bias[2],
-               imu_processor.gyro_rate[2], imu_processor.angles[2],
-               enc_1.encoder_value, enc_2.encoder_value, rf_range);
-    }
-}
-
 static void process_imu(void *) {
     for (;;) {
         /* Block on the queue to wait for data to arrive. */
@@ -195,7 +186,6 @@ int main() {
         xTaskCreate(process_imu, "imu", 1024, NULL, 3, NULL);
         xTaskCreate(process_encoder, "encoder", 1024, NULL, 2, NULL);
         xTaskCreate(process_range, "rf", 1024, NULL, 1, NULL);
-        // xTaskCreate(print_state, "print", 1024, NULL, 1, NULL);
         xTaskCreate(process_cmd, "echo", 1024, NULL, 1, NULL);
 
         // enabling the data ready interrupt

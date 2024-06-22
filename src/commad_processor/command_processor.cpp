@@ -90,6 +90,24 @@ static void process_gyro_bias(const char *prefix, const char *cmd, const char *p
             reinterpret_cast<Settings *>(buffer)->gyro_bias_settings.bias = imu_processor.get_bias();
             FlashStore::save(reinterpret_cast<const uint8_t *>(buffer), sizeof(buffer));
             print_re(prefix, "");
+        } else if (strcmp(parameter, "debug_level") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                int level = atoi(value);
+                imu_processor.set_debug_level(level);
+                print_re(prefix, "");
+            }
+        } else if (strcmp(parameter, "heading") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                float heading = atof(value);
+                Vector3D angles = imu_processor.get_angles();
+                angles.x2 = heading;
+                imu_processor.set_angles(angles);
+                print_re(prefix, "");
+            }
         } else if (strcmp(parameter, "x") == 0) {
             if (value == nullptr) {
                 print_er(prefix, "{7,wrong value}");
@@ -129,6 +147,14 @@ static void process_gyro_bias(const char *prefix, const char *cmd, const char *p
             } else {
                 print_re(prefix, "sync");
             }
+        } else if (strcmp(parameter, "heading") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_angles().x2);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "debug_level") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%d", imu_processor.get_debug_level());
+            print_re(prefix, buffer);
         } else if (strcmp(parameter, "x") == 0) {
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_bias().x0);
