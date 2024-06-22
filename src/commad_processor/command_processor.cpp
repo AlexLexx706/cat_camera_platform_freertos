@@ -6,13 +6,14 @@
 #include <stdlib.h>
 #include "flash_store/flash_store.h"
 #include <hardware/flash.h>
-
+#include "utils/settings.h"
+#include "imu_processor/imu_porcessor.h"
 
 #define VERSION "0.1"
 #define AUTHOR "Alexlexx1@gmai.com"
 
-static int mode;
 static CommandParser command_parser;
+Settings * settings = reinterpret_cast<Settings *>(FlashStore::store_ptr);
 
 // write error to port
 static void print_er(const char *prefix, const char *msg) {
@@ -23,8 +24,9 @@ static void print_er(const char *prefix, const char *msg) {
     int prefix_len = strlen(prefix);
     int len;
     if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\r\n",
-                       strlen(msg) + prefix_len + 2, prefix, msg);
+        len = snprintf(
+            buffer, sizeof(buffer), "ER%03X%%%s%%%s\r\n",
+            strlen(msg) + prefix_len + 2, prefix, msg);
     } else {
         len =
             snprintf(buffer, sizeof(buffer), "ER%03X%s\r\n", strlen(msg), msg);
@@ -44,8 +46,14 @@ static void print_re(const char *prefix, const char *msg) {
     int len;
 
     if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "RE%03X%%%s%%%s\r\n",
-                       strlen(prefix) + msg_len + 2, prefix, msg);
+        len = snprintf(
+            buffer,
+            sizeof(buffer),
+            "RE%03X%%%s%%%s\r\n",
+            strlen(prefix) + msg_len + 2,
+            prefix,
+            msg);
+
         puts_raw(buffer);
     } else if (msg_len) {
         len = snprintf(buffer, sizeof(buffer), "RE%03X%s\r\n", msg_len, msg);
@@ -54,27 +62,92 @@ static void print_re(const char *prefix, const char *msg) {
     stdio_flush();
 }
 
-/**
- * Commands:
- * /par/imu/calb/bias/start
- * /par/imu/calb/bias/stop
- * /par/imu/calb/bias/clear
- * /par/imu/calb/bias/state
- * /par/imu/calb/bias/x
- * /par/imu/calb/bias/y
- * /par/imu/calb/bias/z
- *
- * /par/imu/calb/scale/start
- * /par/imu/calb/scale/stop
- * /par/imu/calb/scale/clear
- * /par/imu/calb/scale/state
- * /par/imu/calb/scale/z
- 
- * /par/flash/reset
- * /par/flash
- */
-
 static uint8_t tmp_buffer[FLASH_PAGE_SIZE];
+constexpr auto clb_gyro_bias = "/clb/gyro_bias/";
+constexpr auto clb_gyro_bias_len = strlen(clb_gyro_bias);
+
+/*
+ * /clb/gyro_bias/start     (set)
+ * /clb/gyro_bias/stop      (set)
+ * /clb/gyro_bias/state     (print)
+ * /clb/gyro_bias/save      (set)
+ * /clb/gyro_bias/x         (set/print)
+ * /clb/gyro_bias/y         (set/print)
+ * /clb/gyro_bias/z         (set/print)
+*/
+static void process_gyro_bias(const char *prefix, const char *cmd, const char *parameter, const char *value) {
+    if (strcmp(cmd, "set") == 0) {
+        if (strcmp(parameter, "start") == 0) {
+            imu_processor.start_bias_calibration();
+            print_re(prefix, "");
+        } else if (strcmp(parameter, "stop") == 0) {
+            imu_processor.stop_bias_calibration();
+            print_re(prefix, "");
+        } else if (strcmp(parameter, "save") == 0) {
+            char buffer[FLASH_PAGE_SIZE];
+            //copy current memory state
+            memcpy(buffer, settings, sizeof(buffer));
+            reinterpret_cast<Settings *>(buffer)->gyro_bias_settings.bias = imu_processor.get_bias();
+            FlashStore::save(reinterpret_cast<const uint8_t *>(buffer), sizeof(buffer));
+            print_re(prefix, "");
+        } else if (strcmp(parameter, "x") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                Vector3D cur_bias = imu_processor.get_bias();
+                cur_bias.x0 = atof(value);
+                imu_processor.set_bias(cur_bias);
+                print_re(prefix, "");
+            }
+        } else if (strcmp(parameter, "y") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                Vector3D cur_bias = imu_processor.get_bias();
+                cur_bias.x1 = atof(value);
+                imu_processor.set_bias(cur_bias);
+                print_re(prefix, "");
+            }
+        } else if (strcmp(parameter, "z") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                Vector3D cur_bias = imu_processor.get_bias();
+                cur_bias.x2 = atof(value);
+                imu_processor.set_bias(cur_bias);
+                print_re(prefix, "");
+            }
+        } else {
+            print_er(prefix, "{6,wrong parameter}");
+        }
+    } else if (strcmp(cmd, "print") == 0) {
+        if (strcmp(parameter, "state") == 0) {
+            if (imu_processor.is_bias_clb_on()) {
+                print_re(prefix, "on");
+            } else if (settings->gyro_bias_settings.bias != imu_processor.get_bias()) {
+                print_re(prefix, "not_sync");
+            } else {
+                print_re(prefix, "sync");
+            }
+        } else if (strcmp(parameter, "x") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_bias().x0);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "y") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_bias().x1);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "z") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_bias().x2);
+            print_re(prefix, buffer);
+        } else {
+            print_er(prefix, "{6,wrong parameter}");
+        }
+    } else {
+        print_er(prefix, "{8,wrong command}");
+    }
+}
 
 static void command_parser_cmd_cb(const char *prefix, const char *cmd,
                                   const char *parameter, const char *value) {
@@ -83,64 +156,35 @@ static void command_parser_cmd_cb(const char *prefix, const char *cmd,
         print_re(prefix, "%%");
         return;
     }
-
-    // cheking print command
-    if (strcmp(cmd, "print") == 0) {
-        // print current version
-        if (strcmp(parameter, "/par/version") == 0) {
-            print_re(prefix, VERSION);
-            // print author
-        } else if (strcmp(parameter, "/par/author") == 0) {
-            print_re(prefix, AUTHOR);
-            // print current mode: auto or manual
-        } else if (strcmp(parameter, "/par/mode") == 0) {
-            char buffer[10];
-            snprintf(buffer, sizeof(buffer), "%d", mode);
-            print_re(prefix, buffer);
-        } else if (strcmp(parameter, "/par/flash") == 0) {
-            FlashStore::read(tmp_buffer, sizeof(tmp_buffer));
-            print_re(prefix, reinterpret_cast<char *>(tmp_buffer));
-        } else {
-            print_er(prefix, "{6,wrong parameter}");
-        }
-        // process set commands
-    } else if (strcmp(cmd, "set") == 0) {
-        // wrong value
-        if (value == nullptr) {
-            print_er(prefix, "{7,wrong value}");
-            return;
-        }
-        // set mode
-        if (strcmp(parameter, "/par/mode") == 0) {
-            int _mode = atoi(value);
-            if (_mode == 0) {
-                mode = 0;
-                print_re(prefix, "");
-            } else if (_mode == 1) {
-                mode = 1;
+    if (parameter != nullptr) {
+        //process gyro_bias
+        if (strncmp(parameter, clb_gyro_bias, clb_gyro_bias_len) == 0) {
+            process_gyro_bias(prefix, cmd, &parameter[clb_gyro_bias_len], value);
+        // print command
+        } else if (strcmp(cmd, "print") == 0) {
+            // print current version
+            if (strcmp(parameter, "/version") == 0) {
+                print_re(prefix, VERSION);
+                // print author
+            } else if (strcmp(parameter, "/author") == 0) {
+                print_re(prefix, AUTHOR);
+                // print author
+            } else {
+                print_er(prefix, "{6,wrong parameter}");
+            }
+        // set commands
+        } else if (strcmp(cmd, "set") == 0) {
+            if (strcmp(parameter, "/flash/erase") == 0) {
+                FlashStore::erase();
                 print_re(prefix, "");
             } else {
-                print_er(prefix, "{7,wrong value}");
+                print_er(prefix, "{6,wrong parameter}");
             }
-            // set current finger state for manual mode
-        } else if (strcmp(parameter, "/par/flash/reset") == 0) {
-            int _mode = atoi(value);
-            if (_mode == 1) {
-                FlashStore::clear();
-                print_re(prefix, "");
-            } else {
-                print_er(prefix, "{7,wrong value}");
-            }
-        } else if (strcmp(parameter, "/par/flash") == 0) {
-            strcpy(reinterpret_cast<char*>(tmp_buffer), value); 
-            FlashStore::save(tmp_buffer, sizeof(tmp_buffer));
-            print_re(prefix, "");
         } else {
-            print_er(prefix, "{6,wrong parameter}");
+            print_er(prefix, "{8,wrong command}");
         }
-        // wrong command
     } else {
-        print_er(prefix, "{8,wrong command}");
+        print_er(prefix, "{6,wrong parameter}");
     }
 }
 

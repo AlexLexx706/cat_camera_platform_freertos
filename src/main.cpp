@@ -132,8 +132,7 @@ static void process_cmd(void *) {
 int main() {
     stdio_init_all();
     CommandProcessor::init();
-
-    sleep_ms(2000);
+    sleep_ms(5000);
     imu_data_semaphore = xSemaphoreCreateBinary();
     encoder_semaphore = xSemaphoreCreateBinary();
 

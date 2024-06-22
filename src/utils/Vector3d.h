@@ -53,6 +53,11 @@ struct Vector3D {
         x2 *= v.x2;
         return *this;
     }
+
+    bool operator != (const Vector3D & v) {
+        return x0 != v.x0 || x1 != v.x1 || x2 != v.x2;
+    }
+
 };
 
 #endif //_VECTOR_3D_H
