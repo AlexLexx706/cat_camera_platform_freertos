@@ -58,26 +58,28 @@ void Encoder::process() {
     EncoderState *state;
     int encoded;
     if (is_enc1) {
-        state = &enc_1;
+        state = enc;
         encoded = (gpio_get(a1_pin) << 1) | gpio_get(b1_pin);
     } else {
-        state = &enc_2;
+        state = &enc[1];
         encoded = (gpio_get(a2_pin) << 1) | gpio_get(b2_pin);
     }
     int sum = (state->last_encoded << 2) | encoded;
 
     if (sum == 0b1101 || sum == 0b0100 || sum == 0b0010 || sum == 0b1011) {
-        state->encoder_value += 1;
+        state->row += 1;
+        state->value = state->row * state->scale;
     }
 
     if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) {
-        state->encoder_value -= 1;
+        state->row -= 1;
+        state->value = state->row * state->scale;
     }
     state->last_encoded = encoded;
 
     if (debug_level > 0 && (time - last_print_time) > print_period) {
         last_print_time = time;
-        printf("%d %d\n", enc_1.encoder_value, enc_2.encoder_value);
+        printf("%d %d %f %f\n", enc[0].row, enc[1].row, enc[0].value, enc[1].value);
     }
 }
 
