@@ -3,10 +3,10 @@
 #include "pico/time.h"
 
 
-bool Encoder::init(int _a1_pin, int _b1_pin, int _a2_pin, int _b2_pin,
-                   gpio_irq_callback_t gpio_irq_callback,
-                   int task_prio, int stack_size) {
-    printf("Encoder::init task_prio:%d stack_size:%d\n", task_prio, stack_size);
+bool Encoder::init(
+        int _a1_pin, int _b1_pin, int _a2_pin, int _b2_pin,
+        gpio_irq_callback_t gpio_irq_callback,
+        int task_prio, int stack_size) {
 
     semaphore = xSemaphoreCreateBinary();
     if (semaphore == NULL) {
@@ -40,22 +40,17 @@ bool Encoder::init(int _a1_pin, int _b1_pin, int _a2_pin, int _b2_pin,
     gpio_pull_up(b1_pin);
     gpio_pull_up(b2_pin);
 
-    gpio_set_irq_enabled_with_callback(a1_pin,
-                                       GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-                                       true, gpio_irq_callback);
+    gpio_set_irq_enabled_with_callback(
+        a1_pin, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, gpio_irq_callback);
 
-    gpio_set_irq_enabled_with_callback(b1_pin,
-                                       GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-                                       true, gpio_irq_callback);
+    gpio_set_irq_enabled_with_callback(
+        b1_pin, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, gpio_irq_callback);
 
-    gpio_set_irq_enabled_with_callback(a2_pin,
-                                       GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-                                       true, gpio_irq_callback);
+    gpio_set_irq_enabled_with_callback(
+        a2_pin, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, gpio_irq_callback);
 
-    gpio_set_irq_enabled_with_callback(b2_pin,
-                                       GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-                                       true, gpio_irq_callback);
-    printf("Encoder::init ok\n");
+    gpio_set_irq_enabled_with_callback(
+        b2_pin, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, gpio_irq_callback);
     return true;
 }
 
@@ -76,13 +71,13 @@ void Encoder::process() {
     }
 
     if (sum == 0b1110 || sum == 0b0111 || sum == 0b0001 || sum == 0b1000) {
-        state->encoder_value += 1;
+        state->encoder_value -= 1;
     }
     state->last_encoded = encoded;
 
     if (debug_level > 0 && (time - last_print_time) > print_period) {
         last_print_time = time;
-        printf("e1:%d e2:%d\n", enc_1.encoder_value, enc_2.encoder_value);
+        printf("%d %d\n", enc_1.encoder_value, enc_2.encoder_value);
     }
 }
 
