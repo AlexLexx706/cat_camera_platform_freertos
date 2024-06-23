@@ -28,13 +28,10 @@ static VL53L0X sensor;
 volatile static uint32_t mode = 0;
 
 volatile static uint32_t packet_time;
-volatile static uint32_t encoder_time;
 volatile static uint32_t dt = 0;
 volatile static uint16_t rf_range = 0;
 
 static SemaphoreHandle_t imu_data_semaphore;
-static SemaphoreHandle_t encoder_semaphore;
-volatile static bool is_enc1;
 
 IMUProcessor imu_processor;
 Encoder encoder;
@@ -47,18 +44,9 @@ static void gpio_callback(uint gpio, uint32_t events) {
         xSemaphoreGiveFromISR(imu_data_semaphore, &xHigherPriorityTaskWoken);
         // process encoder
     } else {
-        encoder_time = time_us_32();
-        is_enc1 = (gpio == ENC_A1 || gpio == ENC_B1);
-        xSemaphoreGiveFromISR(encoder_semaphore, &xHigherPriorityTaskWoken);
+        encoder.irq_handler(gpio, xHigherPriorityTaskWoken);
     }
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
-
-static void process_encoder(void *) {
-    for (;;) {
-        xSemaphoreTake(encoder_semaphore, portMAX_DELAY);
-        encoder.process(encoder_time, is_enc1);
-    }
 }
 
 static void process_imu(void *) {
@@ -104,10 +92,9 @@ int main() {
     CommandProcessor::init();
     sleep_ms(5000);
     imu_data_semaphore = xSemaphoreCreateBinary();
-    encoder_semaphore = xSemaphoreCreateBinary();
 
-    if (imu_data_semaphore != NULL && encoder_semaphore != NULL) {
-        encoder.init(ENC_A1, ENC_B1, ENC_A2, ENC_B2, gpio_callback);
+    if (imu_data_semaphore != NULL &&
+        encoder.init(ENC_A1, ENC_B1, ENC_A2, ENC_B2, gpio_callback, 2, 1024)) {
 
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);
@@ -132,7 +119,6 @@ int main() {
         imu_processor.init(ICM42688_IRQ_PIN, gpio_callback);
 
         xTaskCreate(process_imu, "imu", 1024, NULL, 3, NULL);
-        xTaskCreate(process_encoder, "encoder", 1024, NULL, 2, NULL);
         xTaskCreate(process_range, "rf", 1024, NULL, 1, NULL);
         xTaskCreate(process_cmd, "echo", 1024, NULL, 1, NULL);
 

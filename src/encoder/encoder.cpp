@@ -1,8 +1,24 @@
 #include "encoder.h"
 #include <stdio.h>
+#include "pico/time.h"
 
-void Encoder::init(int _a1_pin, int _b1_pin, int _a2_pin, int _b2_pin,
-                   gpio_irq_callback_t gpio_irq_callback) {
+
+bool Encoder::init(int _a1_pin, int _b1_pin, int _a2_pin, int _b2_pin,
+                   gpio_irq_callback_t gpio_irq_callback,
+                   int task_prio, int stack_size) {
+    printf("Encoder::init task_prio:%d stack_size:%d\n", task_prio, stack_size);
+
+    semaphore = xSemaphoreCreateBinary();
+    if (semaphore == NULL) {
+        printf("Encoder::init error: can`t create binary semaphore\n");
+        return false;
+    }
+
+    if (xTaskCreate(thread_handler, "encoder", stack_size, this, task_prio, &task) != pdPASS) {
+        printf("Encoder::init error: can't create task\n");
+        return false;
+    }
+
     a1_pin = _a1_pin;
     b1_pin = _b1_pin;
     a2_pin = _a2_pin;
@@ -39,9 +55,11 @@ void Encoder::init(int _a1_pin, int _b1_pin, int _a2_pin, int _b2_pin,
     gpio_set_irq_enabled_with_callback(b2_pin,
                                        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
                                        true, gpio_irq_callback);
+    printf("Encoder::init ok\n");
+    return true;
 }
 
-void Encoder::process(uint32_t encoder_time, bool is_enc1) {
+void Encoder::process() {
     EncoderState *state;
     int encoded;
     if (is_enc1) {
@@ -62,8 +80,23 @@ void Encoder::process(uint32_t encoder_time, bool is_enc1) {
     }
     state->last_encoded = encoded;
 
-    if (debug_level > 0 && (encoder_time - last_print_time) > print_period) {
-        last_print_time = encoder_time;
+    if (debug_level > 0 && (time - last_print_time) > print_period) {
+        last_print_time = time;
         printf("e1:%d e2:%d\n", enc_1.encoder_value, enc_2.encoder_value);
     }
+}
+
+
+void Encoder::thread_handler(void * _encoder) {
+    Encoder & encoder(*reinterpret_cast<Encoder *>(_encoder));
+    for (;;) {
+        xSemaphoreTake(encoder.semaphore, portMAX_DELAY);
+        encoder.process();
+    }
+}
+
+void Encoder::irq_handler(uint gpio, BaseType_t & xHigherPriorityTaskWoken) {
+    time = time_us_32();
+    is_enc1 = (gpio == a1_pin || gpio == b1_pin);
+    xSemaphoreGiveFromISR(semaphore, &xHigherPriorityTaskWoken);
 }
