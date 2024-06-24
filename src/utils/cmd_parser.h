@@ -215,6 +215,7 @@ public:
                         symbol >= 0X61 && symbol <= 0x7A ||
                         symbol == 0x5F ||
                         symbol == 0x2D ||
+                        symbol == 0x2E ||
                         symbol == 0x2B) {
                     //collect value
                     if (value_index < sizeof(value) - 1) {

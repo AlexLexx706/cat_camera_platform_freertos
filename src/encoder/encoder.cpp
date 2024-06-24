@@ -1,12 +1,27 @@
 #include "encoder.h"
 #include <stdio.h>
 #include "pico/time.h"
+#include "utils/settings.h"
 
 
 bool Encoder::init(
         int _a1_pin, int _b1_pin, int _a2_pin, int _b2_pin,
         gpio_irq_callback_t gpio_irq_callback,
         int task_prio, int stack_size) {
+
+    printf("Encoder::init 1.\n");
+    for (int i = 0; i < sizeof(enc)/sizeof(enc[0]); i++) {
+        //reading of scale from settings
+        printf(
+            "Encoder::init 2. i:%d v:0x%x\n",
+            i,
+            *reinterpret_cast<uint32_t*>(&settings->encoder_settings.scale[i]));
+
+        if (*reinterpret_cast<uint32_t*>(&settings->encoder_settings.scale[i]) != 0xffffffff) {
+            enc[i].scale = settings->encoder_settings.scale[i];
+        }
+    }
+    printf("Encoder::init 3.\n");
 
     semaphore = xSemaphoreCreateBinary();
     if (semaphore == NULL) {

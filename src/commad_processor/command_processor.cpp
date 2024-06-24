@@ -141,8 +141,9 @@ static void process_imu(const char *prefix, const char *cmd,
         if (strcmp(parameter, "clb/gyro_bias/state") == 0) {
             if (imu_processor.is_bias_clb_on()) {
                 print_re(prefix, "on");
-            } else if (settings->gyro_bias_settings.bias !=
-                       imu_processor.get_bias()) {
+            } else if (*reinterpret_cast<uint32_t*>(&settings->gyro_bias_settings) != 0xffffffff) {
+                print_re(prefix, "clear");
+            } else if (settings->gyro_bias_settings.bias != imu_processor.get_bias()) {
                 print_re(prefix, "not_sync");
             } else {
                 print_re(prefix, "sync");
@@ -189,6 +190,8 @@ constexpr auto encoder_path_len = strlen(encoder_path);
  * /encoder/1/scale                     (set/print)
  * /encoder/1/value                     (set/print)
  * /encoder/debug_level                 (set/print)
+ * /encoder/state                       (print)
+ * /encoder/save                        (set)
 */
 static void process_encoder(const char *prefix, const char *cmd,
                             const char *parameter, const char *value) {
@@ -201,6 +204,9 @@ static void process_encoder(const char *prefix, const char *cmd,
             } else if (strncmp(parameter, "1/", 2) == 0) {
                 enc = 1;
                 parameter = &parameter[2];
+            } else if (strncmp(parameter, "2/", 2) == 0) {
+                enc = 2;
+                parameter = &parameter[2];
             }
             if (enc != -1) {
                 if (strcmp(parameter, "row") == 0) {
@@ -211,6 +217,13 @@ static void process_encoder(const char *prefix, const char *cmd,
                     print_re(prefix, "");
                 } else if (strcmp(parameter, "value") == 0) {
                     encoder.set_value(enc, atof(value));
+                    print_re(prefix, "");
+                } else if (strcmp(parameter, "save") == 0) {
+                    char buffer[FLASH_PAGE_SIZE];
+                    // copy current memory state
+                    memcpy(buffer, settings, sizeof(buffer));
+                    reinterpret_cast<Settings *>(buffer)->encoder_settings.scale[enc] = encoder.get_scale(enc);
+                    FlashStore::save(reinterpret_cast<const uint8_t *>(buffer), sizeof(buffer));
                     print_re(prefix, "");
                 } else {
                     print_er(prefix, "{6,wrong parameter}");
@@ -231,6 +244,9 @@ static void process_encoder(const char *prefix, const char *cmd,
         } else if (strncmp(parameter, "1/", 2) == 0) {
             enc = 1;
             parameter = &parameter[2];
+        } else if (strncmp(parameter, "2/", 2) == 0) {
+            enc = 2;
+            parameter = &parameter[2];
         }
 
         if (enc != -1) {
@@ -246,6 +262,14 @@ static void process_encoder(const char *prefix, const char *cmd,
                 char buffer[32];
                 snprintf(buffer, sizeof(buffer), "%f", encoder.get_value(enc));
                 print_re(prefix, buffer);
+            } else if (strcmp(parameter, "state") == 0) {
+                if (*reinterpret_cast<uint32_t *>(&settings->encoder_settings.scale[enc]) == 0xffffffff) {
+                    print_re(prefix, "clear");
+                } else if (encoder.get_scale(enc) == settings->encoder_settings.scale[enc]) {
+                    print_re(prefix, "sync");
+                } else {
+                    print_re(prefix, "not_sync");
+                }
             } else {
                 print_er(prefix, "{6,wrong parameter}");
             }

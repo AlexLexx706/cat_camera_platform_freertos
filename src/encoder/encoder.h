@@ -9,9 +9,9 @@ class Encoder {
     struct EncoderState {
         int8_t last_encoded;
         int32_t row = 0;
-        float scale = 0.00011860754739359914;
+        float scale = 1.f;//0.00011860754739359914;
         float value = 0.f;
-    } enc[2];
+    } enc[3];
 
     int a1_pin;
     int b1_pin;

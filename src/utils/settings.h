@@ -20,8 +20,7 @@ struct GyroScaleSettings {
 };
 
 struct EncoderSettings {
-    float enc_0;
-    float enc_1;
+    float scale[3];
 };
 
 struct PidSettings {
