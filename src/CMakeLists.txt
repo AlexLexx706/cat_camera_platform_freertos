@@ -6,6 +6,7 @@ add_executable(${NAME}
         flash_store/flash_store.cpp
         main.cpp
         encoder/encoder.cpp
+        controller/controller.cpp
         )
 
 # Pull in our pico_stdlib which pulls in commonly used features
@@ -15,6 +16,7 @@ target_link_libraries(${NAME}
      freertos_config
      hardware_spi
      hardware_i2c
+     hardware_pwm
 	)
 	
 target_include_directories(${NAME} PRIVATE

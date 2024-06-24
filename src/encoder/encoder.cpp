@@ -9,27 +9,19 @@ bool Encoder::init(
         gpio_irq_callback_t gpio_irq_callback,
         int task_prio, int stack_size) {
 
-    printf("Encoder::init 1.\n");
     for (int i = 0; i < sizeof(enc)/sizeof(enc[0]); i++) {
         //reading of scale from settings
-        printf(
-            "Encoder::init 2. i:%d v:0x%x\n",
-            i,
-            *reinterpret_cast<uint32_t*>(&settings->encoder_settings.scale[i]));
-
         if (*reinterpret_cast<uint32_t*>(&settings->encoder_settings.scale[i]) != 0xffffffff) {
             enc[i].scale = settings->encoder_settings.scale[i];
         }
     }
-    printf("Encoder::init 3.\n");
-
     semaphore = xSemaphoreCreateBinary();
     if (semaphore == NULL) {
         printf("Encoder::init error: can`t create binary semaphore\n");
         return false;
     }
 
-    if (xTaskCreate(thread_handler, "encoder", stack_size, this, task_prio, &task) != pdPASS) {
+    if (xTaskCreate(task_handler, "encoder", stack_size, this, task_prio, &task) != pdPASS) {
         printf("Encoder::init error: can't create task\n");
         return false;
     }
@@ -99,7 +91,7 @@ void Encoder::process() {
 }
 
 
-void Encoder::thread_handler(void * _encoder) {
+void Encoder::task_handler(void * _encoder) {
     Encoder & encoder(*reinterpret_cast<Encoder *>(_encoder));
     for (;;) {
         xSemaphoreTake(encoder.semaphore, portMAX_DELAY);

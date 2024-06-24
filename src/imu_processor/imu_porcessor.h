@@ -3,6 +3,9 @@
 #include "ICM42688/ICM42688.h"
 #include "hardware/gpio.h"
 #include "utils/Vector3d.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
 
 class IMUProcessor {
 
@@ -22,9 +25,20 @@ class IMUProcessor {
     Vector3D internal_gyro_bias = {0.f};
     Vector3D gyro_scale = {1.f, 1.f, 1.f};
 
+    uint32_t packet_time;
+    SemaphoreHandle_t packet_semaphore;
+    TaskHandle_t task;
+
+    static void task_handler(void *);
+    void process();
+
  public:
-    void init(int irq_pin, gpio_irq_callback_t gpio_irq_callback);
-    void process(uint32_t packet_time);
+    bool init(
+        int irq_pin,
+        gpio_irq_callback_t gpio_irq_callback,
+        int task_prio, int stack_size);
+    void irq_handler(BaseType_t & xHigherPriorityTaskWoken);
+
     void start_bias_calibration();
     bool stop_bias_calibration();
     bool is_bias_clb_on() const { return state == BiasClb; }

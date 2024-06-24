@@ -4,6 +4,7 @@
 #include "imu_processor/imu_porcessor.h"
 #include "encoder/encoder.h"
 #include "commad_processor/command_processor.h"
+#include "controller/controller.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
@@ -24,37 +25,35 @@
 #define SDA_PIN 6
 #define SCL_PIN 7
 
-static VL53L0X sensor;
-volatile static uint32_t mode = 0;
+#define INT1 2
+#define INT2 3
+#define INT3 4
+#define INT4 5
 
+#define  EN1 0
+#define  EN2 1
+
+
+static VL53L0X sensor;
 volatile static uint32_t packet_time;
-volatile static uint32_t dt = 0;
 volatile static uint16_t rf_range = 0;
 
 static SemaphoreHandle_t imu_data_semaphore;
 
 IMUProcessor imu_processor;
 Encoder encoder;
+Controller controller;
 
 static void gpio_callback(uint gpio, uint32_t events) {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     // imu Interrupt pin
     if (gpio == ICM42688_IRQ_PIN) {
-        packet_time = time_us_32();
-        xSemaphoreGiveFromISR(imu_data_semaphore, &xHigherPriorityTaskWoken);
-        // process encoder
+        imu_processor.irq_handler(xHigherPriorityTaskWoken);
+    // process encoder
     } else {
         encoder.irq_handler(gpio, xHigherPriorityTaskWoken);
     }
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-}
-
-static void process_imu(void *) {
-    for (;;) {
-        /* Block on the queue to wait for data to arrive. */
-        xSemaphoreTake(imu_data_semaphore, portMAX_DELAY);
-        imu_processor.process(packet_time);
-    }
 }
 
 static void process_range(void *) {
@@ -91,10 +90,10 @@ int main() {
     stdio_init_all();
     CommandProcessor::init();
     sleep_ms(5000);
-    imu_data_semaphore = xSemaphoreCreateBinary();
 
-    if (imu_data_semaphore != NULL &&
-        encoder.init(ENC_A1, ENC_B1, ENC_A2, ENC_B2, gpio_callback, 2, 1024)) {
+    if (imu_processor.init(ICM42688_IRQ_PIN, gpio_callback, 4, 1024) &&
+        encoder.init(ENC_A1, ENC_B1, ENC_A2, ENC_B2, gpio_callback, 3, 1024) &&
+        controller.init(INT1, INT2, INT3, INT4, EN1, EN2, 2, 1024)) {
 
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);
@@ -116,9 +115,6 @@ int main() {
             }
         }
 
-        imu_processor.init(ICM42688_IRQ_PIN, gpio_callback);
-
-        xTaskCreate(process_imu, "imu", 1024, NULL, 3, NULL);
         xTaskCreate(process_range, "rf", 1024, NULL, 1, NULL);
         xTaskCreate(process_cmd, "echo", 1024, NULL, 1, NULL);
 

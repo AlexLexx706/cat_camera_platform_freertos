@@ -20,7 +20,7 @@ class Encoder {
 
     uint32_t last_print_time = 0;
     uint32_t print_period = 100000;
-    int debug_level = 1;
+    int debug_level = 0;
 
     // user in IRQ handler
     SemaphoreHandle_t semaphore;
@@ -29,13 +29,13 @@ class Encoder {
     bool is_enc1 = false;
 
     // thread for handring IRQ
-    static void thread_handler(void *_encoder);
+    static void task_handler(void *_encoder);
     void process();
 
  public:
     bool init(int a1_pin, int b1_pin, int a2_pin, int b2_pin,
-              gpio_irq_callback_t gpio_irq_callback, int task_prio,
-              int stack_size);
+              gpio_irq_callback_t gpio_irq_callback,
+              int task_prio, int stack_size);
     void irq_handler(uint gpio, BaseType_t &xHigherPriorityTaskWoken);
 
     int32_t get_row(int num) const { return enc[num].row; }
