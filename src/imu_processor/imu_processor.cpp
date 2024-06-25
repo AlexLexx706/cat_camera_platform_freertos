@@ -1,12 +1,12 @@
+#include "encoder/encoder.h"
 #include "imu_porcessor.h"
+#include "pico/time.h"
 #include "utils/settings.h"
 #include <math.h>
 #include <stdio.h>
-#include "pico/time.h"
 
-bool IMUProcessor::init(
-        int irq_pin, gpio_irq_callback_t gpio_irq_callback,
-        int task_prio, int stack_size) {
+bool IMUProcessor::init(int irq_pin, gpio_irq_callback_t gpio_irq_callback,
+                        int task_prio, int stack_size) {
 
     packet_semaphore = xSemaphoreCreateBinary();
     if (packet_semaphore == NULL) {
@@ -14,7 +14,8 @@ bool IMUProcessor::init(
         return false;
     }
 
-    if (xTaskCreate(task_handler, "imu", stack_size, this, task_prio, &task) != pdPASS) {
+    if (xTaskCreate(task_handler, "imu", stack_size, this, task_prio, &task) !=
+        pdPASS) {
         printf("IMUProcessor::init can`t create task\n");
         return false;
     }
@@ -54,15 +55,14 @@ bool IMUProcessor::init(
     return true;
 }
 
-void IMUProcessor::task_handler(void * value) {
+void IMUProcessor::task_handler(void *value) {
     reinterpret_cast<IMUProcessor *>(value)->process();
 }
 
-void IMUProcessor::irq_handler(BaseType_t & xHigherPriorityTaskWoken) {
-    packet_time = time_us_32();
+void IMUProcessor::irq_handler(BaseType_t &xHigherPriorityTaskWoken) {
+    packet_time_us = time_us_32();
     xSemaphoreGiveFromISR(packet_semaphore, &xHigherPriorityTaskWoken);
 }
-
 
 void IMUProcessor::process() {
     for (;;) {
@@ -72,18 +72,20 @@ void IMUProcessor::process() {
         // read the sensor
         imu.getAGT();
 
-        if (last_packet_time != 0) {
-            float dt = (packet_time - last_packet_time) / 1e6;
+        if (last_packet_time_us != 0) {
+            float dt = (packet_time_us - last_packet_time_us) / 1e6;
             Vector3D row_rate = {imu.gyrX(), imu.gyrY(), imu.gyrZ()};
 
             // bias calibration
             if (state == BiasClb) {
                 gyro_bias += (row_rate - gyro_bias) * (dt / gyro_bias_tau);
 
-                //print debug
-                if (debug_level > 0 && (packet_time - last_print_time) > print_period) {
-                    last_print_time = packet_time;
-                    printf("%f %f %f\n", gyro_bias.x0, gyro_bias.x1, gyro_bias.x2);
+                // print debug
+                if (debug_level > 0 &&
+                    (packet_time_us - last_print_time_us) > print_period_us) {
+                    last_print_time_us = packet_time_us;
+                    printf("%f %f %f\n", gyro_bias.x0, gyro_bias.x1,
+                           gyro_bias.x2);
                 }
                 // IDE state
             } else {
@@ -103,20 +105,65 @@ void IMUProcessor::process() {
                 } else {
                     angles += gyro_rate * dt;
                 }
-                //print debug
-                if (debug_level > 0 && (packet_time - last_print_time) > print_period) {
-                    last_print_time = packet_time;
-                    printf(
-                        "%f %f %f %f %f %f %f %f %f %f %f %f\n",
-                        gyro_bias.x0, gyro_bias.x1, gyro_bias.x2,
-                        internal_gyro_bias.x0, internal_gyro_bias.x1, internal_gyro_bias.x2,
-                        angles.x0, angles.x1, angles.x2,
-                        gyro_rate.x0, gyro_rate.x1, gyro_rate.x2);
+
+                // calculating speed from encoder
+                if ((packet_time_us - last_encoder_time_us) >=
+                    speed_update_period_us) {
+                    if (init_encoder) {
+                        init_encoder = false;
+                        last_encoder_pos[0] = encoder.get_value(0);
+                        last_encoder_pos[1] = encoder.get_value(1);
+                    } else {
+                        float encoder_pos[2];
+                        encoder_pos[0] = encoder.get_value(0);
+                        encoder_pos[1] = encoder.get_value(1);
+                        float dt =
+                            (packet_time_us - last_encoder_time_us) / 1e6;
+
+                        encoder_speed_ms[0] =
+                            (encoder_pos[0] - last_encoder_pos[0]) / dt;
+                        encoder_speed_ms[1] =
+                            -(encoder_pos[1] - last_encoder_pos[1]) / dt;
+                        mid_encoder_speed_ms =
+                            (encoder_speed_ms[0] + encoder_speed_ms[1]) / 2.f;
+
+                        last_encoder_pos[0] = encoder_pos[0];
+                        last_encoder_pos[1] = encoder_pos[1];
+                    }
+                    last_encoder_time_us = packet_time_us;
                 }
 
+                // calculating of position
+                float angle = angles[2] / 180. * M_PI;
+
+                pos[0] += cos(angle) * mid_encoder_speed_ms * dt;
+                pos[1] += sin(angle) * mid_encoder_speed_ms * dt;
+
+                // print debug
+                if ((packet_time_us - last_print_time_us) > print_period_us) {
+                    last_print_time_us = packet_time_us;
+
+                    // gyro bias debug
+                    if (debug_level == 1) {
+                        printf("%f %f %f %f %f %f %f %f %f %f %f %f\n",
+                               gyro_bias.x0, gyro_bias.x1, gyro_bias.x2,
+                               internal_gyro_bias.x0, internal_gyro_bias.x1,
+                               internal_gyro_bias.x2, angles.x0, angles.x1,
+                               angles.x2, gyro_rate.x0, gyro_rate.x1,
+                               gyro_rate.x2);
+                        // encoder speed debug
+                    } else if (debug_level == 2) {
+                        printf("%f %f %f\n", encoder_speed_ms[0],
+                               encoder_speed_ms[1], mid_encoder_speed_ms);
+                        // position debug
+                    } else if (debug_level == 3) {
+                        printf("%f %f %f %f\n",
+                            pos[0], pos[1], angles[2], mid_encoder_speed_ms);
+                    }
+                }
             }
         }
-        last_packet_time = packet_time;
+        last_packet_time_us = packet_time_us;
     }
 }
 

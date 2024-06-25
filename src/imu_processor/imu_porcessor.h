@@ -10,13 +10,22 @@
 class IMUProcessor {
 
     ICM42688 imu;
-    uint32_t last_packet_time = 0;
+    uint32_t last_packet_time_us = 0;
     bool allow_dynamic_bias = true;
     float bias_rate_threshold = 0.1f;
     float gyro_bias_tau = 20.f;
-    int debug_level = 0;
-    uint32_t last_print_time = 0;
-    uint32_t print_period = 100000;
+    int debug_level = 3;
+    uint32_t last_print_time_us = 0;
+    uint32_t print_period_us = 100000;
+
+    uint32_t speed_update_period_us = 100000;
+    uint32_t last_encoder_time_us = 0;
+    float last_encoder_pos[2];
+    float encoder_speed_ms[2] = {0.f};
+    float mid_encoder_speed_ms = 0.f;
+    bool init_encoder = true;
+
+    float pos[2] = {0.f};
 
     enum State { Ide = 0, BiasClb, ScaleClb } state = Ide;
     Vector3D gyro_rate = {0.f};
@@ -25,7 +34,7 @@ class IMUProcessor {
     Vector3D internal_gyro_bias = {0.f};
     Vector3D gyro_scale = {1.f, 1.f, 1.f};
 
-    uint32_t packet_time;
+    uint32_t packet_time_us;
     SemaphoreHandle_t packet_semaphore;
     TaskHandle_t task;
 
