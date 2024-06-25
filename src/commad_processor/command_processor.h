@@ -9,12 +9,15 @@
  * /imu/clb/gyro_bias/start             (set)
  * /imu/clb/gyro_bias/stop              (set)
  * /imu/clb/gyro_bias/save              (set)
- * /imu/clb/gyro_bias/debug_level       (set/print)
  * /imu/clb/gyro_bias/state             (print)
  * /imu/gyro_bias/x                     (set/print)
  * /imu/gyro_bias/y                     (set/print)
  * /imu/gyro_bias/z                     (set/print)
  * /imu/heading                         (set/print)
+ * /imu/x                               (set/print)
+ * /imu/y                               (set/print)
+ * /imu/debug_level                     (set/print)
+ *
  *
  * /encoder/0/row                       (set/print)
  * /encoder/0/scale                     (set/print)
@@ -47,6 +50,13 @@ print,/encoder/1/row
 
 set,/encoder/0/scale,0.00011860754739359914
 print,/encoder/0/scale
+
+
+set,/encoder/0/scale,0.000121362
+set,/encoder/1/scale,0.000121362
+print,/encoder/0/scale
+print,/encoder/1/scale
+
 set,/encoder/0/save
 print,/encoder/0/state
 
@@ -54,6 +64,23 @@ set,/encoder/1/scale,0.00011860754739359914
 print,/encoder/1/scale
 set,/encoder/1/save
 print,/encoder/1/state
+
+print,/imu/debug_level
+set,/imu/debug_level,0
+set,/imu/debug_level,3
+
+
+print,/imu/x
+print,/imu/y
+
+set,/imu/x,0.0
+set,/imu/y,0.0
+set,/imu/heading,0.
+
+print,/imu/x
+print,/imu/y
+print,/imu/heading
+
 */
 namespace CommandProcessor {
 void init();

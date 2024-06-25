@@ -1,11 +1,11 @@
 #ifndef IMU_PORCESSOR_H
 #define IMU_PORCESSOR_H
+#include "FreeRTOS.h"
 #include "ICM42688/ICM42688.h"
 #include "hardware/gpio.h"
-#include "utils/Vector3d.h"
-#include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"
+#include "utils/Vector3d.h"
 
 class IMUProcessor {
 
@@ -25,7 +25,7 @@ class IMUProcessor {
     float mid_encoder_speed_ms = 0.f;
     bool init_encoder = true;
 
-    float pos[2] = {0.f};
+    Vector3D pos = {0.f};
 
     enum State { Ide = 0, BiasClb, ScaleClb } state = Ide;
     Vector3D gyro_rate = {0.f};
@@ -42,23 +42,23 @@ class IMUProcessor {
     void process();
 
  public:
-    bool init(
-        int irq_pin,
-        gpio_irq_callback_t gpio_irq_callback,
-        int task_prio, int stack_size);
-    void irq_handler(BaseType_t & xHigherPriorityTaskWoken);
+    bool init(int irq_pin, gpio_irq_callback_t gpio_irq_callback, int task_prio,
+              int stack_size);
+    void irq_handler(BaseType_t &xHigherPriorityTaskWoken);
 
     void start_bias_calibration();
     bool stop_bias_calibration();
     bool is_bias_clb_on() const { return state == BiasClb; }
-    void set_bias(const Vector3D &bias) {gyro_bias = bias;}
-    const Vector3D & get_bias() const { return gyro_bias;}
-    void set_gyro_bias_tau(float tau) {gyro_bias_tau = tau;}
-    float get_gyro_bias_tau() const {return gyro_bias_tau;}
-    void set_debug_level(int _debug) {debug_level = _debug;}
-    int get_debug_level() const {return debug_level;}
-    void set_angles(const Vector3D & _angles) {angles = _angles;}
-    const Vector3D & get_angles() const {return angles;}
+    void set_bias(const Vector3D &bias) { gyro_bias = bias; }
+    const Vector3D &get_bias() const { return gyro_bias; }
+    void set_gyro_bias_tau(float tau) { gyro_bias_tau = tau; }
+    float get_gyro_bias_tau() const { return gyro_bias_tau; }
+    void set_debug_level(int _debug) { debug_level = _debug; }
+    int get_debug_level() const { return debug_level; }
+    void set_angles(const Vector3D &_angles) { angles = _angles; }
+    const Vector3D &get_angles() const { return angles; }
+    const Vector3D &get_pos() const { return pos; }
+    void set_pos(const Vector3D &_pos) { pos = _pos; }
 };
 extern IMUProcessor imu_processor;
 #endif // IMU_PORCESSOR_H

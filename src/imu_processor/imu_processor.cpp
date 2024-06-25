@@ -135,9 +135,8 @@ void IMUProcessor::process() {
 
                 // calculating of position
                 float angle = angles[2] / 180. * M_PI;
-
-                pos[0] += cos(angle) * mid_encoder_speed_ms * dt;
-                pos[1] += sin(angle) * mid_encoder_speed_ms * dt;
+                Vector3D dir = {cos(angle), sin(angle), 0.f};
+                pos += dir * mid_encoder_speed_ms * dt;
 
                 // print debug
                 if ((packet_time_us - last_print_time_us) > print_period_us) {
@@ -157,8 +156,8 @@ void IMUProcessor::process() {
                                encoder_speed_ms[1], mid_encoder_speed_ms);
                         // position debug
                     } else if (debug_level == 3) {
-                        printf("%f %f %f %f\n",
-                            pos[0], pos[1], angles[2], mid_encoder_speed_ms);
+                        printf("%f %f %f %f\n", pos[0], pos[1], angles[2],
+                               mid_encoder_speed_ms);
                     }
                 }
             }

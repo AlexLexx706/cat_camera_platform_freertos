@@ -107,6 +107,26 @@ static void process_imu(const char *prefix, const char *cmd,
                 imu_processor.set_angles(angles);
                 print_re(prefix, "");
             }
+        } else if (strcmp(parameter, "x") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                float x = atof(value);
+                Vector3D pos = imu_processor.get_pos();
+                pos.x0 = x;
+                imu_processor.set_pos(pos);
+                print_re(prefix, "");
+            }
+        } else if (strcmp(parameter, "y") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                float y = atof(value);
+                Vector3D pos = imu_processor.get_pos();
+                pos.x1 = y;
+                imu_processor.set_pos(pos);
+                print_re(prefix, "");
+            }
         } else if (strcmp(parameter, "gyro_bias/x") == 0) {
             if (value == nullptr) {
                 print_er(prefix, "{7,wrong value}");
@@ -141,9 +161,11 @@ static void process_imu(const char *prefix, const char *cmd,
         if (strcmp(parameter, "clb/gyro_bias/state") == 0) {
             if (imu_processor.is_bias_clb_on()) {
                 print_re(prefix, "on");
-            } else if (*reinterpret_cast<uint32_t*>(&settings->gyro_bias_settings) != 0xffffffff) {
+            } else if (*reinterpret_cast<uint32_t *>(
+                           &settings->gyro_bias_settings) != 0xffffffff) {
                 print_re(prefix, "clear");
-            } else if (settings->gyro_bias_settings.bias != imu_processor.get_bias()) {
+            } else if (settings->gyro_bias_settings.bias !=
+                       imu_processor.get_bias()) {
                 print_re(prefix, "not_sync");
             } else {
                 print_re(prefix, "sync");
@@ -152,6 +174,14 @@ static void process_imu(const char *prefix, const char *cmd,
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%f",
                      imu_processor.get_angles().x2);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "x") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_pos().x0);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "y") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_pos().x1);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "debug_level") == 0) {
             char buffer[32];
@@ -192,7 +222,7 @@ constexpr auto encoder_path_len = strlen(encoder_path);
  * /encoder/debug_level                 (set/print)
  * /encoder/state                       (print)
  * /encoder/save                        (set)
-*/
+ */
 static void process_encoder(const char *prefix, const char *cmd,
                             const char *parameter, const char *value) {
     if (strcmp(cmd, "set") == 0) {
@@ -222,8 +252,10 @@ static void process_encoder(const char *prefix, const char *cmd,
                     char buffer[FLASH_PAGE_SIZE];
                     // copy current memory state
                     memcpy(buffer, settings, sizeof(buffer));
-                    reinterpret_cast<Settings *>(buffer)->encoder_settings.scale[enc] = encoder.get_scale(enc);
-                    FlashStore::save(reinterpret_cast<const uint8_t *>(buffer), sizeof(buffer));
+                    reinterpret_cast<Settings *>(buffer)
+                        ->encoder_settings.scale[enc] = encoder.get_scale(enc);
+                    FlashStore::save(reinterpret_cast<const uint8_t *>(buffer),
+                                     sizeof(buffer));
                     print_re(prefix, "");
                 } else {
                     print_er(prefix, "{6,wrong parameter}");
@@ -263,9 +295,11 @@ static void process_encoder(const char *prefix, const char *cmd,
                 snprintf(buffer, sizeof(buffer), "%f", encoder.get_value(enc));
                 print_re(prefix, buffer);
             } else if (strcmp(parameter, "state") == 0) {
-                if (*reinterpret_cast<uint32_t *>(&settings->encoder_settings.scale[enc]) == 0xffffffff) {
+                if (*reinterpret_cast<uint32_t *>(
+                        &settings->encoder_settings.scale[enc]) == 0xffffffff) {
                     print_re(prefix, "clear");
-                } else if (encoder.get_scale(enc) == settings->encoder_settings.scale[enc]) {
+                } else if (encoder.get_scale(enc) ==
+                           settings->encoder_settings.scale[enc]) {
                     print_re(prefix, "sync");
                 } else {
                     print_re(prefix, "not_sync");
