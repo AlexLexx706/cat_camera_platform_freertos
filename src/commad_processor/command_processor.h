@@ -18,6 +18,12 @@
  * /imu/y                               (set/print)
  * /imu/debug_level                     (set/print)
  *
+ * /imu/wheel_base                      (set/print)
+ * /imu/encoder_omega                   (print)
+ * /imu/encoder_heading                 (set/print)
+ * /imu/encoder_pos/x                   (set/print)
+ * /imu/encoder_pos/y                   (set/print)
+ *
  *
  * /encoder/0/row                       (set/print)
  * /encoder/0/scale                     (set/print)
@@ -81,6 +87,13 @@ print,/imu/x
 print,/imu/y
 print,/imu/heading
 
+
+set,/imu/encoder_heading,0.
+set,/imu/encoder_pos/x,0
+set,/imu/encoder_pos/y,0
+set,/encoder/0/value,0
+set,/encoder/1/value,0
+set,/imu/heading,0.
 */
 namespace CommandProcessor {
 void init();

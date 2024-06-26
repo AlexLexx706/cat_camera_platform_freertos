@@ -107,28 +107,29 @@ void IMUProcessor::process() {
                 }
 
                 // calculating speed from encoder
-                if ((packet_time_us - last_encoder_time_us) >=
-                    speed_update_period_us) {
+                if ((packet_time_us - last_encoder_time_us) >= speed_update_period_us) {
                     if (init_encoder) {
                         init_encoder = false;
                         last_encoder_pos[0] = encoder.get_value(0);
                         last_encoder_pos[1] = encoder.get_value(1);
                     } else {
-                        float encoder_pos[2];
-                        encoder_pos[0] = encoder.get_value(0);
-                        encoder_pos[1] = encoder.get_value(1);
-                        float dt =
-                            (packet_time_us - last_encoder_time_us) / 1e6;
+                        float _encoder_pos[2];
+                        _encoder_pos[0] = encoder.get_value(0);
+                        _encoder_pos[1] = encoder.get_value(1);
+                        float dt = (packet_time_us - last_encoder_time_us) / 1e6;
 
-                        encoder_speed_ms[0] =
-                            (encoder_pos[0] - last_encoder_pos[0]) / dt;
-                        encoder_speed_ms[1] =
-                            -(encoder_pos[1] - last_encoder_pos[1]) / dt;
-                        mid_encoder_speed_ms =
-                            (encoder_speed_ms[0] + encoder_speed_ms[1]) / 2.f;
+                        encoder_speed_ms[0] = (_encoder_pos[0] - last_encoder_pos[0]) / dt;
+                        encoder_speed_ms[1] = -(_encoder_pos[1] - last_encoder_pos[1]) / dt;
+                        mid_encoder_speed_ms = (encoder_speed_ms[0] + encoder_speed_ms[1]) / 2.f;
 
-                        last_encoder_pos[0] = encoder_pos[0];
-                        last_encoder_pos[1] = encoder_pos[1];
+                        encoder_omega = (encoder_speed_ms[1] - encoder_speed_ms[0]) / wheel_base;
+                        encoder_heading += encoder_omega * dt;
+
+                        Vector3D dir = {cos(encoder_heading), sin(encoder_heading), 0.f};
+                        encoder_pos += dir * mid_encoder_speed_ms * dt;
+
+                        last_encoder_pos[0] = _encoder_pos[0];
+                        last_encoder_pos[1] = _encoder_pos[1];
                     }
                     last_encoder_time_us = packet_time_us;
                 }
@@ -150,14 +151,22 @@ void IMUProcessor::process() {
                                internal_gyro_bias.x2, angles.x0, angles.x1,
                                angles.x2, gyro_rate.x0, gyro_rate.x1,
                                gyro_rate.x2);
-                        // encoder speed debug
+                    // encoder speed debug
                     } else if (debug_level == 2) {
                         printf("%f %f %f\n", encoder_speed_ms[0],
                                encoder_speed_ms[1], mid_encoder_speed_ms);
-                        // position debug
+                    // position debug
                     } else if (debug_level == 3) {
                         printf("%f %f %f %f\n", pos[0], pos[1], angles[2],
                                mid_encoder_speed_ms);
+                    // enc position debug
+                    } else if (debug_level == 4) {
+                        float heading = encoder_heading / M_PI * 180.;
+                        printf("%f %f %f %f %f, %f %f\n",
+                            encoder_pos[0], encoder_pos[1],
+                            heading, angles[2], mid_encoder_speed_ms,
+                            encoder.get_value(0),
+                            encoder.get_value(1));
                     }
                 }
             }

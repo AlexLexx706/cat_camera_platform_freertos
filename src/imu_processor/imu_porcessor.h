@@ -14,16 +14,21 @@ class IMUProcessor {
     bool allow_dynamic_bias = true;
     float bias_rate_threshold = 0.1f;
     float gyro_bias_tau = 20.f;
-    int debug_level = 3;
+    int debug_level = 4;
     uint32_t last_print_time_us = 0;
     uint32_t print_period_us = 100000;
 
-    uint32_t speed_update_period_us = 100000;
+    uint32_t speed_update_period_us = 10000;
     uint32_t last_encoder_time_us = 0;
     float last_encoder_pos[2];
     float encoder_speed_ms[2] = {0.f};
     float mid_encoder_speed_ms = 0.f;
     bool init_encoder = true;
+    float wheel_base = 0.235f;
+    float encoder_omega = 0.f;
+    float encoder_heading = 0.f;
+    Vector3D encoder_pos = {0.f};
+
 
     Vector3D pos = {0.f};
 
@@ -59,6 +64,17 @@ class IMUProcessor {
     const Vector3D &get_angles() const { return angles; }
     const Vector3D &get_pos() const { return pos; }
     void set_pos(const Vector3D &_pos) { pos = _pos; }
+
+    void set_wheel_base(float base) {wheel_base = base;}
+    float get_wheel_base() const {return wheel_base;}
+
+    float get_encoder_omega() const {return encoder_omega;}
+    void set_encoder_heading(float heading) {encoder_heading = heading;}
+    float get_encoder_heading() const {return encoder_heading;}
+
+    void set_encoder_pos(const Vector3D & _pos) {encoder_pos = _pos;}
+    const Vector3D & get_encoder_pos() const {return encoder_pos;}
+
 };
 extern IMUProcessor imu_processor;
 #endif // IMU_PORCESSOR_H

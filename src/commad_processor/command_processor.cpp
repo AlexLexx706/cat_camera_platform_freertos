@@ -70,6 +70,13 @@ constexpr auto imu_path_len = strlen(imu_path);
  * /imu/gyro_bias/z                     (set/print)
  * /imu/debug_level                     (set/print)
  * /imu/heading                         (set/print)
+ *
+ * /imu/wheel_base                      (set/print)
+ * /imu/encoder_omega                   (print)
+ * /imu/encoder_heading                 (set/print)
+ * /imu/encoder_pos/x                   (set/print)
+ * /imu/encoder_pos/y                   (set/print)
+
  */
 static void process_imu(const char *prefix, const char *cmd,
                         const char *parameter, const char *value) {
@@ -89,6 +96,42 @@ static void process_imu(const char *prefix, const char *cmd,
             FlashStore::save(reinterpret_cast<const uint8_t *>(buffer),
                              sizeof(buffer));
             print_re(prefix, "");
+        } else if (strcmp(parameter, "wheel_base") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                float base = atof(value);
+                imu_processor.set_wheel_base(base);
+                print_re(prefix, "");
+            }
+        } else if (strcmp(parameter, "encoder_heading") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                float heading = atof(value);
+                imu_processor.set_encoder_heading(heading);
+                print_re(prefix, "");
+            }
+        } else if (strcmp(parameter, "encoder_pos/x") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                float x = atof(value);
+                Vector3D pos = imu_processor.get_encoder_pos();
+                pos.x0 = x;
+                imu_processor.set_encoder_pos(pos);
+                print_re(prefix, "");
+            }
+        } else if (strcmp(parameter, "encoder_pos/y") == 0) {
+            if (value == nullptr) {
+                print_er(prefix, "{7,wrong value}");
+            } else {
+                float y = atof(value);
+                Vector3D pos = imu_processor.get_encoder_pos();
+                pos.x1 = y;
+                imu_processor.set_encoder_pos(pos);
+                print_re(prefix, "");
+            }
         } else if (strcmp(parameter, "debug_level") == 0) {
             if (value == nullptr) {
                 print_er(prefix, "{7,wrong value}");
@@ -174,6 +217,26 @@ static void process_imu(const char *prefix, const char *cmd,
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%f",
                      imu_processor.get_angles().x2);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "wheel_base") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_wheel_base());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "encoder_omega") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_encoder_omega());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "encoder_heading") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_encoder_heading());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "encoder_pos/x") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_encoder_pos().x0);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "encoder_pos/y") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_encoder_pos().x1);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "x") == 0) {
             char buffer[32];
