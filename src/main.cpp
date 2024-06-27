@@ -92,8 +92,8 @@ int main() {
     sleep_ms(5000);
 
     if (imu_processor.init(ICM42688_IRQ_PIN, gpio_callback, 4, 1024) &&
-        encoder.init(ENC_A1, ENC_B1, ENC_A2, ENC_B2, gpio_callback, 3, 1024)) {// &&
-        // controller.init(INT1, INT2, INT3, INT4, EN1, EN2, 2, 1024)) {
+        encoder.init(ENC_A1, ENC_B1, ENC_A2, ENC_B2, gpio_callback, 3, 1024) &&
+        controller.init(INT1, INT2, INT3, INT4, EN1, EN2, 2, 1024)) {
 
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);

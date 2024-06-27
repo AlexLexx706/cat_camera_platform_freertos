@@ -4,6 +4,7 @@
 #include "pico/time.h"
 #include <math.h>
 #include <stdio.h>
+#include "imu_processor/imu_porcessor.h"
 
 bool Controller::init(uint _int1, uint _int2, uint _int3, uint _int4, uint _en1,
                       uint _en2, int task_prio, int stack_size) {
@@ -41,7 +42,7 @@ bool Controller::init(uint _int1, uint _int2, uint _int3, uint _int4, uint _en1,
 void Controller::process() {
     uint32_t time;
     TickType_t xLastWakeTime;
-    const TickType_t xFrequency = pdMS_TO_TICKS(10);
+    const TickType_t xFrequency = pdMS_TO_TICKS(period_ms);
 
     float period = 10.f;
     uint32_t cur_time_ms;
@@ -51,30 +52,70 @@ void Controller::process() {
     xLastWakeTime = xTaskGetTickCount();
 
     for (;;) {
-        cur_time_ms = to_ms_since_boot(get_absolute_time());
-        control_value = (sinf(cur_time_ms / 1000.f / period * M_PI));
-        float tmp_control_value = control_value;
+        if (active) {
+            float cur_heading = imu_processor.get_angles().x2;
+            float res = heading_pid.compute(
+                cur_heading,
+                target_heading);
 
-        if (control_value >= 0) {
-            gpio_put(int1, 1);
-            gpio_put(int2, 0);
-            gpio_put(int3, 1);
-            gpio_put(int4, 0);
+            set_left_pwm(res);
+            set_right_pwm(-res);
+
+            if (debug_level > 0) {
+                printf("%f %f %f %f %f %f\n",
+                    cur_heading,
+                    target_heading,
+                    heading_pid.p_value,
+                    heading_pid.d_value,
+                    heading_pid.int_value,
+                    res);
+            }
         } else {
-            tmp_control_value = -control_value;
-            gpio_put(int1, 0);
-            gpio_put(int2, 1);
-            gpio_put(int3, 0);
-            gpio_put(int4, 1);
+            set_left_pwm(0);
+            set_right_pwm(0);
         }
-        // convert control value (0-1) to pwm_value
-        pwm_value = tmp_control_value * max_control_value + min_pwm_value;
-        pwm_set_gpio_level(en1, pwm_value);
-        pwm_set_gpio_level(en2, pwm_value);
-
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }
+
+void Controller::set_left_pwm(float pwm) {
+    if (pwm >= 0) {
+        gpio_put(int1, 1);
+        gpio_put(int2, 0);
+    } else {
+        pwm = -pwm;
+        gpio_put(int1, 0);
+        gpio_put(int2, 1);
+    }
+    // convert control value (0-1) to pwm_value
+    if (pwm > max_pwm_value) {
+        pwm = max_pwm_value;
+    }
+    if (pwm < min_pwm_value) {
+        pwm = 0;
+    }
+    pwm_set_gpio_level(en1, pwm);
+}
+
+void Controller::set_right_pwm(float pwm) {
+    if (pwm >= 0) {
+        gpio_put(int3, 1);
+        gpio_put(int4, 0);
+    } else {
+        pwm = -pwm;
+        gpio_put(int3, 0);
+        gpio_put(int4, 1);
+    }
+    // convert control value (0-1) to pwm_value
+    if (pwm > max_pwm_value) {
+        pwm = max_pwm_value;
+    }
+    if (pwm < min_pwm_value) {
+        pwm = 0;
+    }
+    pwm_set_gpio_level(en2, pwm);
+}
+
 
 void Controller::thread_handler(void *val) {
     reinterpret_cast<Controller *>(val)->process();

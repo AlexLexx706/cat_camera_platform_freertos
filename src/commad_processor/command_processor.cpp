@@ -2,6 +2,7 @@
 #include "encoder/encoder.h"
 #include "flash_store/flash_store.h"
 #include "imu_processor/imu_porcessor.h"
+#include "controller/controller.h"
 #include "pico/stdlib.h"
 #include "utils/cmd_parser.h"
 #include "utils/settings.h"
@@ -382,6 +383,82 @@ static void process_encoder(const char *prefix, const char *cmd,
     }
 }
 
+
+constexpr auto controller_path = "/controller/";
+constexpr auto controller_path_len = strlen(controller_path);
+
+/*
+ * /controller/active (set/print)
+ * /controller/target_heading (set/print)
+ * /controller/heading_pid/p (set/print)
+ * /controller/heading_pid/i (set/print)
+ * /controller/heading_pid/d (set/print)
+ * /controller/heading_pid/max_int (set/print)
+ * /controller/debug_level (set/print)
+ * 
+ * set,/controller/debug_level,0
+ */
+static void process_controller(const char *prefix, const char *cmd,
+                            const char *parameter, const char *value) {
+    if (strcmp(cmd, "set") == 0) {
+        if (value != nullptr) {
+            if (strcmp(parameter, "active") == 0) {
+                controller.set_active(atoi(value));
+            } else if (strcmp(parameter, "target_heading") == 0) {
+                controller.set_target_heading(atof(value));
+            } else if (strcmp(parameter, "heading_pid/p") == 0) {
+                controller.get_heading_pid().p = atof(value);
+            } else if (strcmp(parameter, "heading_pid/i") == 0) {
+                controller.get_heading_pid().i = atof(value);
+            } else if (strcmp(parameter, "heading_pid/d") == 0) {
+                controller.get_heading_pid().d = atof(value);
+            } else if (strcmp(parameter, "heading_pid/max_int") == 0) {
+                controller.get_heading_pid().max_int = atof(value);
+            } else if (strcmp(parameter, "debug_level") == 0) {
+                controller.set_debug_level(atoi(value));
+            } else {
+                print_er(prefix, "{6,wrong parameter}");
+            }
+        } else {
+            print_er(prefix, "{7,wrong value}");
+        }
+    } else if (strcmp(cmd, "print") == 0) {
+        if (strcmp(parameter, "active") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%d", controller.get_aclive());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "target_heading") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_target_heading());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "heading_pid/p") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_heading_pid().p);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "heading_pid/i") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_heading_pid().i);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "heading_pid/d") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_heading_pid().d);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "heading_pid/max_int") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_heading_pid().max_int);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "debug_level") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%d", controller.get_debug_level());
+            print_re(prefix, buffer);
+        } else {
+            print_er(prefix, "{6,wrong parameter}");
+        }
+    } else {
+        print_er(prefix, "{8,wrong command}");
+    }
+}
+
 static void command_parser_cmd_cb(const char *prefix, const char *cmd,
                                   const char *parameter, const char *value) {
     // echo command
@@ -395,6 +472,8 @@ static void command_parser_cmd_cb(const char *prefix, const char *cmd,
             process_imu(prefix, cmd, &parameter[imu_path_len], value);
         } else if (strncmp(parameter, encoder_path, encoder_path_len) == 0) {
             process_encoder(prefix, cmd, &parameter[encoder_path_len], value);
+        } else if (strncmp(parameter, controller_path, controller_path_len) == 0) {
+            process_controller(prefix, cmd, &parameter[controller_path_len], value);
             // print command
         } else if (strcmp(cmd, "print") == 0) {
             // print current version

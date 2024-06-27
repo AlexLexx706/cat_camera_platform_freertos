@@ -94,6 +94,12 @@ set,/imu/encoder_pos/y,0
 set,/encoder/0/value,0
 set,/encoder/1/value,0
 set,/imu/heading,0.
+
+set,/encoder/0/scale,0.00012180795658203664
+
+print,/imu/wheel_base
+set,/imu/wheel_base,0.2585
+
 */
 namespace CommandProcessor {
 void init();
