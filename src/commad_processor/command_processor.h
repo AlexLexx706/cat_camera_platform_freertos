@@ -54,6 +54,8 @@
  * /controller/heading_pid/d            (set/print)
  * /controller/heading_pid/max_int      (set/print)
  * /controller/debug_level              (set/print)
+ * /controller/min_pwm                  (set/print)
+ *
  *  1: {
  *      cur_heading
  *      target_heading
@@ -62,6 +64,10 @@
  *      heading_pid.int_value,
  *      control_signal}
  *
+ * /controller/sin_test/active          (set/print)
+ * /controller/sin_test/period          (set/print) sec
+ * /controller/sin_test/amplitude       (set/print)
+ * /controller/sin_test/value           (print)
  */
 
 /*

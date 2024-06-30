@@ -1,8 +1,8 @@
 #include "command_processor.h"
+#include "controller/controller.h"
 #include "encoder/encoder.h"
 #include "flash_store/flash_store.h"
 #include "imu_processor/imu_porcessor.h"
-#include "controller/controller.h"
 #include "pico/stdlib.h"
 #include "utils/cmd_parser.h"
 #include "utils/settings.h"
@@ -29,8 +29,7 @@ static void print_er(const char *prefix, const char *msg) {
         len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\n",
                        strlen(msg) + prefix_len + 2, prefix, msg);
     } else {
-        len =
-            snprintf(buffer, sizeof(buffer), "ER%03X%s\n", strlen(msg), msg);
+        len = snprintf(buffer, sizeof(buffer), "ER%03X%s\n", strlen(msg), msg);
     }
     puts_raw(buffer);
     stdio_flush();
@@ -221,23 +220,28 @@ static void process_imu(const char *prefix, const char *cmd,
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "wheel_base") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_wheel_base());
+            snprintf(buffer, sizeof(buffer), "%f",
+                     imu_processor.get_wheel_base());
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "encoder_omega") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_encoder_omega());
+            snprintf(buffer, sizeof(buffer), "%f",
+                     imu_processor.get_encoder_omega());
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "encoder_heading") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_encoder_heading());
+            snprintf(buffer, sizeof(buffer), "%f",
+                     imu_processor.get_encoder_heading());
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "encoder_pos/x") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_encoder_pos().x0);
+            snprintf(buffer, sizeof(buffer), "%f",
+                     imu_processor.get_encoder_pos().x0);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "encoder_pos/y") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", imu_processor.get_encoder_pos().x1);
+            snprintf(buffer, sizeof(buffer), "%f",
+                     imu_processor.get_encoder_pos().x1);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "x") == 0) {
             char buffer[32];
@@ -383,7 +387,6 @@ static void process_encoder(const char *prefix, const char *cmd,
     }
 }
 
-
 constexpr auto controller_path = "/controller/";
 constexpr auto controller_path_len = strlen(controller_path);
 
@@ -395,11 +398,17 @@ constexpr auto controller_path_len = strlen(controller_path);
  * /controller/heading_pid/d (set/print)
  * /controller/heading_pid/max_int (set/print)
  * /controller/debug_level (set/print)
- * 
+ *
  * set,/controller/debug_level,0
+ *
+ * /controller/sin_test/active          (set/print)
+ * /controller/sin_test/period          (set/print) sec
+ * /controller/sin_test/amplitude       (set/print)
+ * /controller/sin_test/value           (print)
+
  */
 static void process_controller(const char *prefix, const char *cmd,
-                            const char *parameter, const char *value) {
+                               const char *parameter, const char *value) {
     if (strcmp(cmd, "set") == 0) {
         if (value != nullptr) {
             if (strcmp(parameter, "active") == 0) {
@@ -423,6 +432,18 @@ static void process_controller(const char *prefix, const char *cmd,
             } else if (strcmp(parameter, "debug_level") == 0) {
                 controller.set_debug_level(atoi(value));
                 print_re(prefix, "");
+            } else if (strcmp(parameter, "sin_test/active") == 0) {
+                controller.get_sin_test().set_active(atoi(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "sin_test/period") == 0) {
+                controller.get_sin_test().set_period(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "sin_test/amplitude") == 0) {
+                controller.get_sin_test().set_ampliture(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "min_pwm") == 0) {
+                controller.set_min_pwm(atoi(value));
+                print_re(prefix, "");
             } else {
                 print_er(prefix, "{6,wrong parameter}");
             }
@@ -436,27 +457,58 @@ static void process_controller(const char *prefix, const char *cmd,
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "target_heading") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", controller.get_target_heading());
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_target_heading());
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "heading_pid/p") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", controller.get_heading_pid().p);
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_heading_pid().p);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "heading_pid/i") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", controller.get_heading_pid().i);
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_heading_pid().i);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "heading_pid/d") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", controller.get_heading_pid().d);
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_heading_pid().d);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "heading_pid/max_int") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", controller.get_heading_pid().max_int);
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_heading_pid().max_int);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "debug_level") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%d", controller.get_debug_level());
+            snprintf(buffer, sizeof(buffer), "%d",
+                     controller.get_debug_level());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "sin_test/active") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%d",
+                     controller.get_sin_test().is_active());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "sin_test/period") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_sin_test().get_period());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "sin_test/amplitude") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_sin_test().get_ampliture());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "sin_test/value") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_sin_test().get_value());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "min_pwm") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%u",
+                     controller.get_min_pwm());
             print_re(prefix, buffer);
         } else {
             print_er(prefix, "{6,wrong parameter}");
@@ -479,8 +531,10 @@ static void command_parser_cmd_cb(const char *prefix, const char *cmd,
             process_imu(prefix, cmd, &parameter[imu_path_len], value);
         } else if (strncmp(parameter, encoder_path, encoder_path_len) == 0) {
             process_encoder(prefix, cmd, &parameter[encoder_path_len], value);
-        } else if (strncmp(parameter, controller_path, controller_path_len) == 0) {
-            process_controller(prefix, cmd, &parameter[controller_path_len], value);
+        } else if (strncmp(parameter, controller_path, controller_path_len) ==
+                   0) {
+            process_controller(prefix, cmd, &parameter[controller_path_len],
+                               value);
             // print command
         } else if (strcmp(cmd, "print") == 0) {
             // print current version

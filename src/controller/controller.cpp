@@ -54,21 +54,23 @@ void Controller::process() {
     for (;;) {
         if (active) {
             float cur_heading = imu_processor.get_angles().x2;
+            float cur_target_heading = sin_test.is_active() ? sin_test.get_value() : target_heading;
             float res = heading_pid.compute(
                 cur_heading,
-                target_heading);
+                cur_target_heading);
 
             set_left_pwm(res);
             set_right_pwm(-res);
 
             if (debug_level > 0) {
-                printf("%f %f %f %f %f %f\n",
+                printf("%f %f %f %f %f %f %u\n",
                     cur_heading,
-                    target_heading,
+                    cur_target_heading,
                     heading_pid.p_value,
                     heading_pid.d_value,
                     heading_pid.int_value,
-                    res);
+                    res,
+                    time_us_32());
             }
         } else {
             set_left_pwm(0);
@@ -91,9 +93,10 @@ void Controller::set_left_pwm(float pwm) {
     if (pwm > max_pwm_value) {
         pwm = max_pwm_value;
     }
-    if (pwm < min_pwm_value) {
-        pwm = 0;
+    if (pwm > 1) {
+        pwm += min_pwm_value;
     }
+
     pwm_set_gpio_level(en1, pwm);
 }
 
@@ -110,8 +113,8 @@ void Controller::set_right_pwm(float pwm) {
     if (pwm > max_pwm_value) {
         pwm = max_pwm_value;
     }
-    if (pwm < min_pwm_value) {
-        pwm = 0;
+    if (pwm > 1) {
+        pwm += min_pwm_value;
     }
     pwm_set_gpio_level(en2, pwm);
 }
