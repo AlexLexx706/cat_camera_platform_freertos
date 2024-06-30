@@ -20,8 +20,8 @@ public:
      * @brief callback function type, called when parsing conpleted well
      * @param prefix - current prefix, c string, can be empty string
      * @param cmd - current command, c string, can be empty string in case of empty prefix - echo command
-     * @param parameter - current parameter, c string, can be empty
-     * @param value - current value, c string, can be empty
+     * @param parameter - current parameter, c string, can be NULL
+     * @param value - current value, c string, can be NULL
      */
     typedef void (*cmd_cb_t)(const char * prefix, const char * cmd, const char * parameter, const char * value);
 

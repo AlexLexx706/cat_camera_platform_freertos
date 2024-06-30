@@ -46,6 +46,22 @@
  * /encoder/debug_level                 (set/print)
  *
  * /flash/erase                         (set)
+
+ * /controller/active                   (set/print)
+ * /controller/target_heading           (set/print)
+ * /controller/heading_pid/p            (set/print)
+ * /controller/heading_pid/i            (set/print)
+ * /controller/heading_pid/d            (set/print)
+ * /controller/heading_pid/max_int      (set/print)
+ * /controller/debug_level              (set/print)
+ *  1: {
+ *      cur_heading
+ *      target_heading
+ *      heading_pid.p_value,
+ *      heading_pid.d_value,
+ *      heading_pid.int_value,
+ *      control_signal}
+ *
  */
 
 /*

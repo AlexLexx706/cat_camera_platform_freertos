@@ -29,7 +29,7 @@ class Controller {
     void set_right_pwm(float pwm);
 
  public:
-    Controller() : heading_pid(500, 0, 0, 1000) {}
+    Controller() : heading_pid(500, 50, 100, 10000) {}
 
     bool init(uint int1, uint int2, uint int3, uint int4, uint en1, uint en2,
               int task_prio, int stack_size);

@@ -26,11 +26,11 @@ static void print_er(const char *prefix, const char *msg) {
     int prefix_len = strlen(prefix);
     int len;
     if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\r\n",
+        len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\n",
                        strlen(msg) + prefix_len + 2, prefix, msg);
     } else {
         len =
-            snprintf(buffer, sizeof(buffer), "ER%03X%s\r\n", strlen(msg), msg);
+            snprintf(buffer, sizeof(buffer), "ER%03X%s\n", strlen(msg), msg);
     }
     puts_raw(buffer);
     stdio_flush();
@@ -47,12 +47,12 @@ static void print_re(const char *prefix, const char *msg) {
     int len;
 
     if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "RE%03X%%%s%%%s\r\n",
+        len = snprintf(buffer, sizeof(buffer), "RE%03X%%%s%%%s\n",
                        strlen(prefix) + msg_len + 2, prefix, msg);
 
         puts_raw(buffer);
     } else if (msg_len) {
-        len = snprintf(buffer, sizeof(buffer), "RE%03X%s\r\n", msg_len, msg);
+        len = snprintf(buffer, sizeof(buffer), "RE%03X%s\n", msg_len, msg);
         puts_raw(buffer);
     }
     stdio_flush();
@@ -404,18 +404,25 @@ static void process_controller(const char *prefix, const char *cmd,
         if (value != nullptr) {
             if (strcmp(parameter, "active") == 0) {
                 controller.set_active(atoi(value));
+                print_re(prefix, "");
             } else if (strcmp(parameter, "target_heading") == 0) {
                 controller.set_target_heading(atof(value));
+                print_re(prefix, "");
             } else if (strcmp(parameter, "heading_pid/p") == 0) {
                 controller.get_heading_pid().p = atof(value);
+                print_re(prefix, "");
             } else if (strcmp(parameter, "heading_pid/i") == 0) {
                 controller.get_heading_pid().i = atof(value);
+                print_re(prefix, "");
             } else if (strcmp(parameter, "heading_pid/d") == 0) {
                 controller.get_heading_pid().d = atof(value);
+                print_re(prefix, "");
             } else if (strcmp(parameter, "heading_pid/max_int") == 0) {
                 controller.get_heading_pid().max_int = atof(value);
+                print_re(prefix, "");
             } else if (strcmp(parameter, "debug_level") == 0) {
                 controller.set_debug_level(atoi(value));
+                print_re(prefix, "");
             } else {
                 print_er(prefix, "{6,wrong parameter}");
             }
