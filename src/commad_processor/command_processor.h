@@ -55,6 +55,13 @@
  * /controller/heading_pid/max_int      (set/print)
  * /controller/debug_level              (set/print)
  * /controller/min_pwm                  (set/print)
+
+ * /controller/speed_pid/p              (set/print)
+ * /controller/speed_pid/i              (set/print)
+ * /controller/speed_pid/d              (set/print)
+ * /controller/speed_pid/max_int        (set/print)
+ * /controller/target_speed             (set/print)
+
  *
  *  1: {
  *      cur_heading

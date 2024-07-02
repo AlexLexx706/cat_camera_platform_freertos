@@ -406,6 +406,11 @@ constexpr auto controller_path_len = strlen(controller_path);
  * /controller/sin_test/amplitude       (set/print)
  * /controller/sin_test/value           (print)
 
+ * /controller/speed_pid/p              (set/print)
+ * /controller/speed_pid/i              (set/print)
+ * /controller/speed_pid/d              (set/print)
+ * /controller/speed_pid/max_int        (set/print)
+ * /controller/target_speed             (set/print)
  */
 static void process_controller(const char *prefix, const char *cmd,
                                const char *parameter, const char *value) {
@@ -443,6 +448,21 @@ static void process_controller(const char *prefix, const char *cmd,
                 print_re(prefix, "");
             } else if (strcmp(parameter, "min_pwm") == 0) {
                 controller.set_min_pwm(atoi(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "speed_pid/p") == 0) {
+                controller.get_speed_pid().p = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "speed_pid/i") == 0) {
+                controller.get_speed_pid().i = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "speed_pid/d") == 0) {
+                controller.get_speed_pid().d = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "speed_pid/max_int") == 0) {
+                controller.get_speed_pid().max_int = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "speed_pid/target_speed") == 0) {
+                controller.set_target_speed(atof(value));
                 print_re(prefix, "");
             } else {
                 print_er(prefix, "{6,wrong parameter}");
@@ -509,6 +529,26 @@ static void process_controller(const char *prefix, const char *cmd,
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%u",
                      controller.get_min_pwm());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "speed_pid/p") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_pid().p);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "speed_pid/i") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_pid().i);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "speed_pid/d") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_pid().d);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "speed_pid/max_int") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_pid().max_int);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "speed_pid/target_speed") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_target_speed());
             print_re(prefix, buffer);
         } else {
             print_er(prefix, "{6,wrong parameter}");

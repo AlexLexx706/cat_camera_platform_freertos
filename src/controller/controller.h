@@ -25,6 +25,9 @@ class Controller {
     SimplePID heading_pid;
     int debug_level = 0;
 
+    float target_speed = 0.;
+    SimplePID speed_pid;
+
     class SinTets {
         uint32_t start_time = 0;
         bool active = false;
@@ -62,7 +65,7 @@ class Controller {
     void set_right_pwm(float pwm);
 
  public:
-    Controller() : heading_pid(380, 10, 960, 1900) {}
+    Controller() : heading_pid(380, 10, 960, 1900), speed_pid(1, 0, 0, 100) {}
 
     bool init(uint int1, uint int2, uint int3, uint int4, uint en1, uint en2,
               int task_prio, int stack_size);
@@ -81,6 +84,11 @@ class Controller {
     uint16_t get_min_pwm() const { return min_pwm_value; }
 
     SinTets &get_sin_test() { return sin_test; }
+
+    SimplePID &get_speed_pid() { return speed_pid; }
+
+    float get_target_speed() const { return target_speed; }
+    void set_target_speed(float speed) { target_speed = speed; }
 };
 
 extern Controller controller;

@@ -75,6 +75,7 @@ class IMUProcessor {
     void set_encoder_pos(const Vector3D & _pos) {encoder_pos = _pos;}
     const Vector3D & get_encoder_pos() const {return encoder_pos;}
 
+    float get_speed() const {return mid_encoder_speed_ms;}
 };
 extern IMUProcessor imu_processor;
 #endif // IMU_PORCESSOR_H

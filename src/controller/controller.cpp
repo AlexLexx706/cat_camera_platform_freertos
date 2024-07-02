@@ -1,10 +1,10 @@
 #include "controller.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
+#include "imu_processor/imu_porcessor.h"
 #include "pico/time.h"
 #include <math.h>
 #include <stdio.h>
-#include "imu_processor/imu_porcessor.h"
 
 bool Controller::init(uint _int1, uint _int2, uint _int3, uint _int4, uint _en1,
                       uint _en2, int task_prio, int stack_size) {
@@ -54,24 +54,52 @@ void Controller::process() {
     for (;;) {
         if (active) {
             float cur_heading = imu_processor.get_angles().x2;
-            float cur_target_heading = sin_test.is_active() ? sin_test.get_value() : target_heading;
-            float res = heading_pid.compute(
-                cur_heading,
-                cur_target_heading);
+            float cur_target_heading =
+                sin_test.is_active() ? sin_test.get_value() : target_heading;
 
-            set_left_pwm(res);
-            set_right_pwm(-res);
+            float heading_control =
+                heading_pid.compute(cur_heading, cur_target_heading);
 
-            if (debug_level > 0) {
-                printf("%f %f %f %f %f %f %u\n",
+            float cur_speed = imu_processor.get_speed();
+            float speed_control = speed_pid.compute(cur_speed, target_speed);
+
+            set_left_pwm(speed_control + heading_control);
+            set_right_pwm(speed_control - heading_control);
+
+            if (debug_level == 1) {
+                printf("%f %f %f %f %f %f\n",
+                       cur_heading,
+                       cur_target_heading,
+                       heading_pid.p_value,
+                       heading_pid.d_value,
+                       heading_pid.int_value,
+                       heading_control);
+            } else if (debug_level == 2) {
+                printf(
+                    "%f %f %f %f %f %f\n",
+                    cur_speed,
+                    target_speed,
+                    speed_pid.p_value,
+                    speed_pid.d_value,
+                    speed_pid.int_value,
+                    speed_control);
+            } else if (debug_level == 3) {
+                printf("%f %f %f %f %f %f %f %f %f %f %f %f %u\n",
                     cur_heading,
                     cur_target_heading,
                     heading_pid.p_value,
                     heading_pid.d_value,
                     heading_pid.int_value,
-                    res,
+                    heading_control,
+                    cur_speed,
+                    target_speed,
+                    speed_pid.p_value,
+                    speed_pid.d_value,
+                    speed_pid.int_value,
+                    speed_control,
                     time_us_32());
             }
+
         } else {
             set_left_pwm(0);
             set_right_pwm(0);
@@ -118,7 +146,6 @@ void Controller::set_right_pwm(float pwm) {
     }
     pwm_set_gpio_level(en2, pwm);
 }
-
 
 void Controller::thread_handler(void *val) {
     reinterpret_cast<Controller *>(val)->process();
