@@ -17,6 +17,7 @@ target_link_libraries(${NAME}
      hardware_spi
      hardware_i2c
      hardware_pwm
+     hardware_flash
 	)
 	
 target_include_directories(${NAME} PRIVATE
@@ -34,6 +35,7 @@ pico_add_extra_outputs(${NAME})
 pico_enable_stdio_usb(${NAME} 1)
 pico_enable_stdio_uart(${NAME} 1)
 target_compile_definitions(${NAME} PRIVATE
-    PICO_DEFAULT_UART_RX_PIN=16
-    PICO_DEFAULT_UART_TX_PIN=17
+    PICO_DEFAULT_UART_RX_PIN=13
+    PICO_DEFAULT_UART_TX_PIN=12
+    PICO_DEFAULT_UART_BAUD_RATE=576000
 )

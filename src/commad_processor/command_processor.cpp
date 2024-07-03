@@ -461,7 +461,7 @@ static void process_controller(const char *prefix, const char *cmd,
             } else if (strcmp(parameter, "speed_pid/max_int") == 0) {
                 controller.get_speed_pid().max_int = atof(value);
                 print_re(prefix, "");
-            } else if (strcmp(parameter, "speed_pid/target_speed") == 0) {
+            } else if (strcmp(parameter, "target_speed") == 0) {
                 controller.set_target_speed(atof(value));
                 print_re(prefix, "");
             } else {
@@ -546,7 +546,7 @@ static void process_controller(const char *prefix, const char *cmd,
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_pid().max_int);
             print_re(prefix, buffer);
-        } else if (strcmp(parameter, "speed_pid/target_speed") == 0) {
+        } else if (strcmp(parameter, "target_speed") == 0) {
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%f", controller.get_target_speed());
             print_re(prefix, buffer);

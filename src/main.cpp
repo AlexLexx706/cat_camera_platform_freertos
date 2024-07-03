@@ -33,6 +33,13 @@
 #define  EN1 0
 #define  EN2 1
 
+#define UART_ID uart0
+#define BAUD_RATE 576000
+
+// We are using pins 0 and 1, but see the GPIO function select table in the
+// datasheet for information on which other pins can be used.
+#define UART_TX_PIN 12
+#define UART_RX_PIN 13
 
 static VL53L0X sensor;
 volatile static uint32_t packet_time;
@@ -88,6 +95,14 @@ static void process_cmd(void *) {
 
 int main() {
     stdio_init_all();
+    // Set up our UART with the required speed.
+    // uart_init(UART_ID, BAUD_RATE);
+
+    // // // Set the TX and RX pins by using the function select on the GPIO
+    // // // Set datasheet for more information on function select
+    // gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    // gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+
     CommandProcessor::init();
     sleep_ms(5000);
 
