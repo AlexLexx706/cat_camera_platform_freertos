@@ -16,7 +16,37 @@
  * /imu/heading                         (set/print)
  * /imu/x                               (set/print)
  * /imu/y                               (set/print)
- * /imu/debug_level                     (set/print)
+ * /imu/debug_level                     (set/print):
+ *      1:
+            gyro_bias.x0
+            gyro_bias.x1
+            gyro_bias.x2
+            internal_gyro_bias.x0
+            internal_gyro_bias.x1
+            internal_gyro_bias.x2
+            angles.x0
+            angles.x1
+            angles.x2
+            gyro_rate.x0
+            gyro_rate.x1
+            gyro_rate.x2
+        2:
+            encoder_speed_ms[0]
+            encoder_speed_ms[1]
+            mid_encoder_speed_ms
+        3:
+            pos[0],
+            pos[1],
+            angles[2],
+            mid_encoder_speed_ms
+        4:
+            encoder_pos[0]
+            encoder_pos[1]
+            heading
+            angles[2]
+            mid_encoder_speed_ms
+            encoder.get_value(0)
+            encoder.get_value(1)
  *
  * /imu/wheel_base                      (set/print)
  * /imu/encoder_omega                   (print)

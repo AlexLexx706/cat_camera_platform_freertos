@@ -153,12 +153,17 @@ void IMUProcessor::process() {
                                gyro_rate.x2);
                     // encoder speed debug
                     } else if (debug_level == 2) {
-                        printf("%f %f %f\n", encoder_speed_ms[0],
-                               encoder_speed_ms[1], mid_encoder_speed_ms);
+                        printf("%f %f %f\n",
+                            encoder_speed_ms[0],
+                            encoder_speed_ms[1],
+                            mid_encoder_speed_ms);
                     // position debug
                     } else if (debug_level == 3) {
-                        printf("%f %f %f %f\n", pos[0], pos[1], angles[2],
-                               mid_encoder_speed_ms);
+                        printf("%f %f %f %f\n",
+                            pos[0],
+                            pos[1],
+                            angles[2],
+                            mid_encoder_speed_ms);
                     // enc position debug
                     } else if (debug_level == 4) {
                         float heading = encoder_heading / M_PI * 180.;
