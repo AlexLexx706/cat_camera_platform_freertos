@@ -422,6 +422,11 @@ static void process_controller(const char *prefix, const char *cmd,
             } else if (strcmp(parameter, "target_heading") == 0) {
                 controller.set_target_heading(atof(value));
                 print_re(prefix, "");
+            } else if (strcmp(parameter, "add_heading") == 0) {
+                float target_heading = controller.get_target_heading();
+                target_heading += atof(value);
+                controller.set_target_heading(target_heading);
+                print_re(prefix, "");
             } else if (strcmp(parameter, "heading_pid/p") == 0) {
                 controller.get_heading_pid().p = atof(value);
                 print_re(prefix, "");
