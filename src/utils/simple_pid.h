@@ -13,10 +13,11 @@ struct SimplePID {
     float max_int;
 	float d_value;
 	float p_value;
+    float feed_forward = 0.0;
 
  public:
-    SimplePID(float _p, float _i, float _d, float _max_int):
-		p(_p), i(_i), d(_d), old_error(0.f), first(1), max_int(_max_int) {}
+    SimplePID(float _p, float _i, float _d, float _max_int, float _feed_forward):
+		p(_p), i(_i), d(_d), old_error(0.f), first(1), max_int(_max_int), feed_forward(_feed_forward) {}
 
     void reset() {
         int_value = 0.f;
@@ -41,7 +42,7 @@ struct SimplePID {
         if (fabs(int_value) > max_int) {
             int_value = int_value > 0 ? max_int : -max_int;
         }
-        return p_value + int_value + d_value;
+        return p_value + int_value + d_value + target * feed_forward;
     }
 };
 

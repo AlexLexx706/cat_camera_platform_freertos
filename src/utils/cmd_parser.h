@@ -37,7 +37,7 @@ private:
     char cmd[9];
     int cmd_index;
 
-    char parameter[33];
+    char parameter[128];
     int parameter_index;
 
     char value[33];

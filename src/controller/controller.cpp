@@ -60,8 +60,8 @@ void Controller::process() {
             float heading_control =
                 heading_pid.compute(cur_heading, cur_target_heading);
 
-            float cur_speed = -imu_processor.get_speed();
-            float speed_control = speed_pid.compute(cur_speed, target_speed);
+            float cur_speed = imu_processor.get_speed();
+            float speed_control = -speed_pid.compute(cur_speed, target_speed);
 
             set_left_pwm(speed_control + heading_control);
             set_right_pwm(speed_control - heading_control);

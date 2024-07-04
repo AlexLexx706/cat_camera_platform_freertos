@@ -434,6 +434,9 @@ static void process_controller(const char *prefix, const char *cmd,
             } else if (strcmp(parameter, "heading_pid/max_int") == 0) {
                 controller.get_heading_pid().max_int = atof(value);
                 print_re(prefix, "");
+            } else if (strcmp(parameter, "heading_pid/feed_forward") == 0) {
+                controller.get_heading_pid().feed_forward = atof(value);
+                print_re(prefix, "");
             } else if (strcmp(parameter, "debug_level") == 0) {
                 controller.set_debug_level(atoi(value));
                 print_re(prefix, "");
@@ -460,6 +463,9 @@ static void process_controller(const char *prefix, const char *cmd,
                 print_re(prefix, "");
             } else if (strcmp(parameter, "speed_pid/max_int") == 0) {
                 controller.get_speed_pid().max_int = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "speed_pid/feed_forward") == 0) {
+                controller.get_speed_pid().feed_forward = atof(value);
                 print_re(prefix, "");
             } else if (strcmp(parameter, "target_speed") == 0) {
                 controller.set_target_speed(atof(value));
@@ -499,6 +505,11 @@ static void process_controller(const char *prefix, const char *cmd,
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%f",
                      controller.get_heading_pid().max_int);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "heading_pid/feed_forward") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f",
+                     controller.get_heading_pid().feed_forward);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "debug_level") == 0) {
             char buffer[32];
@@ -545,6 +556,10 @@ static void process_controller(const char *prefix, const char *cmd,
         } else if (strcmp(parameter, "speed_pid/max_int") == 0) {
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_pid().max_int);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "speed_pid/feed_forward") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_pid().feed_forward);
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "target_speed") == 0) {
             char buffer[32];
