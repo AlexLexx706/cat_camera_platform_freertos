@@ -20,6 +20,9 @@
 #define ENC_A2 10
 #define ENC_B2 11
 
+#define ENC_A3 14
+#define ENC_B3 15
+
 #define ICM42688_IRQ_PIN 22
 
 #define SDA_PIN 6
@@ -95,19 +98,17 @@ static void process_cmd(void *) {
 
 int main() {
     stdio_init_all();
-    // Set up our UART with the required speed.
-    // uart_init(UART_ID, BAUD_RATE);
-
-    // // // Set the TX and RX pins by using the function select on the GPIO
-    // // // Set datasheet for more information on function select
-    // gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    // gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
     CommandProcessor::init();
     sleep_ms(5000);
 
+    int encoder_pins [] = {
+        ENC_A1, ENC_B1,
+        ENC_A2, ENC_B2,
+        ENC_A3, ENC_B3};
+
     if (imu_processor.init(ICM42688_IRQ_PIN, gpio_callback, 4, 1024) &&
-        encoder.init(ENC_A1, ENC_B1, ENC_A2, ENC_B2, gpio_callback, 3, 1024) &&
+        encoder.init(encoder_pins, gpio_callback, 3, 1024) &&
         controller.init(INT1, INT2, INT3, INT4, EN1, EN2, 2, 1024)) {
 
         // 2. init range-finder:
