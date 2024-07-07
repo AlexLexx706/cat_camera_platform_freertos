@@ -18,6 +18,8 @@ class Controller {
     uint int4;
     uint en1;
     uint en2;
+    uint int5;
+    uint int6;
 
     int period_ms = 10;
     bool active = false;
@@ -59,16 +61,67 @@ class Controller {
         }
     } sin_test;
 
+    class MotorTest{
+        bool active = true;
+        float pwm = 16384;
+        bool first = true;
+        uint32_t start_time = 0;
+        int state = 0;
+        uint32_t period = 3000000;
+        float cur_pwm = 0.f;
+    public:
+        void set_active(bool _active) {
+            if (active != _active) {
+                first = true;
+            }
+            active = _active;
+        }
+
+        float get_pwm() {
+            if (!active) {
+                return 0.f;
+            }
+            uint32_t cur_time = time_us_32();
+            if (first) {
+                start_time = cur_time;
+                first = false;
+                cur_pwm = 0;
+            }
+            uint32_t dt = cur_time - start_time;
+            if (dt >= period) {
+                start_time = cur_time - (cur_time % period);
+
+                if (state == 0) {
+                    cur_pwm = pwm;
+                    state = 1;
+                } else if (state == 1) {
+                    cur_pwm = -pwm;
+                    state = 2;
+                } else if (state == 2) {
+                    cur_pwm = 0;
+                    state = 0;
+                }
+            }
+            return cur_pwm;
+        }
+    } motor_test;
+
+    SinTets motor_sin_test;
+
     void process();
     static void thread_handler(void *);
     void set_left_pwm(float pwm);
     void set_right_pwm(float pwm);
-
+    void set_motor_pwm(float pwm);
  public:
     Controller() : heading_pid(380, 10, 960, 1900, 0), speed_pid(0, 600, 0, 5000, 15600) {}
 
-    bool init(uint int1, uint int2, uint int3, uint int4, uint en1, uint en2,
-              int task_prio, int stack_size);
+    bool init(
+        uint int1, uint int2,
+        uint int3, uint int4,
+        uint en1, uint en2,
+        uint int5, uint int6,
+        int task_prio, int stack_size);
     void set_active(bool _active) { active = _active; }
     bool get_aclive() const { return active; }
 

@@ -20,8 +20,8 @@
 #define ENC_A2 10
 #define ENC_B2 11
 
-#define ENC_A3 14
-#define ENC_B3 15
+#define ENC_A3 16
+#define ENC_B3 17
 
 #define ICM42688_IRQ_PIN 22
 
@@ -30,8 +30,12 @@
 
 #define INT1 2
 #define INT2 3
+
 #define INT3 4
 #define INT4 5
+
+#define INT5 14
+#define INT6 15
 
 #define  EN1 0
 #define  EN2 1
@@ -109,7 +113,7 @@ int main() {
 
     if (imu_processor.init(ICM42688_IRQ_PIN, gpio_callback, 4, 1024) &&
         encoder.init(encoder_pins, gpio_callback, 3, 1024) &&
-        controller.init(INT1, INT2, INT3, INT4, EN1, EN2, 2, 1024)) {
+        controller.init(INT1, INT2, INT3, INT4, EN1, EN2, INT5, INT6, 2, 1024)) {
 
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);

@@ -2,21 +2,28 @@
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 #include "imu_processor/imu_porcessor.h"
+#include "encoder/encoder.h"
 #include "pico/time.h"
 #include <math.h>
 #include <stdio.h>
 
-bool Controller::init(uint _int1, uint _int2, uint _int3, uint _int4, uint _en1,
-                      uint _en2, int task_prio, int stack_size) {
+bool Controller::init(
+        uint _int1, uint _int2,
+        uint _int3, uint _int4,
+        uint _en1,  uint _en2,
+        uint _int5, uint _int6,
+        int task_prio, int stack_size) {
     if (xTaskCreate(thread_handler, "controller", stack_size, this, task_prio,
                     &task) != pdPASS) {
-        printf("Encoder::init error: can't create task\n");
+        printf("Controller::init error: can't create task\n");
         return false;
     }
     int1 = _int1;
     int2 = _int2;
     int3 = _int3;
     int4 = _int4;
+    int5 = _int5;
+    int6 = _int6;
     en1 = _en1;
     en2 = _en2;
 
@@ -32,10 +39,20 @@ bool Controller::init(uint _int1, uint _int2, uint _int3, uint _int4, uint _en1,
 
     gpio_set_function(en1, GPIO_FUNC_PWM);
     gpio_set_function(en2, GPIO_FUNC_PWM);
+
+    gpio_set_function(int5, GPIO_FUNC_PWM);
+    gpio_set_function(int6, GPIO_FUNC_PWM);
+
     uint slice_num = pwm_gpio_to_slice_num(en1);
     pwm_set_wrap(slice_num, max_pwm_value);
     pwm_set_enabled(slice_num, true);
 
+    slice_num = pwm_gpio_to_slice_num(int5);
+    pwm_set_wrap(slice_num, max_pwm_value);
+    pwm_set_enabled(slice_num, true);
+
+    motor_sin_test.set_ampliture(16384);
+    motor_sin_test.set_active(true);
     return true;
 }
 
@@ -52,6 +69,11 @@ void Controller::process() {
     xLastWakeTime = xTaskGetTickCount();
 
     for (;;) {
+        float motor_pwm = motor_sin_test.get_value();
+        set_motor_pwm(motor_pwm);
+        float motor_enc = encoder.get_row(2);
+        printf("%f %f\n", motor_pwm, motor_enc);
+
         if (active) {
             float cur_heading = imu_processor.get_angles().x2;
             float cur_target_heading =
@@ -124,7 +146,6 @@ void Controller::set_left_pwm(float pwm) {
     if (pwm > 1) {
         pwm += min_pwm_value;
     }
-
     pwm_set_gpio_level(en1, pwm);
 }
 
@@ -146,6 +167,25 @@ void Controller::set_right_pwm(float pwm) {
     }
     pwm_set_gpio_level(en2, pwm);
 }
+
+
+void Controller::set_motor_pwm(float pwm) {
+    if (pwm > 0.f) {
+        if (pwm > max_pwm_value) {
+            pwm = max_pwm_value;
+        }
+        pwm_set_gpio_level(int5, 0);
+        pwm_set_gpio_level(int6, pwm);
+    } else if (pwm < 0.f) {
+        pwm = -pwm;
+        if (pwm > max_pwm_value) {
+            pwm = max_pwm_value;
+        }
+        pwm_set_gpio_level(int5, pwm);
+        pwm_set_gpio_level(int6, 0);
+    }
+}
+
 
 void Controller::thread_handler(void *val) {
     reinterpret_cast<Controller *>(val)->process();
