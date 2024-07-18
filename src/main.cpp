@@ -65,7 +65,7 @@ static void gpio_callback(uint gpio, uint32_t events) {
         imu_processor.irq_handler(xHigherPriorityTaskWoken);
     // process encoder
     } else {
-        encoder.irq_handler(gpio, xHigherPriorityTaskWoken);
+        encoder.irq_handler(gpio);
     }
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
@@ -111,8 +111,9 @@ int main() {
         ENC_A2, ENC_B2,
         ENC_A3, ENC_B3};
 
-    if (imu_processor.init(ICM42688_IRQ_PIN, gpio_callback, 4, 1024) &&
-        encoder.init(encoder_pins, gpio_callback, 3, 1024) &&
+    //set gpio irq callback
+    if (imu_processor.init(ICM42688_IRQ_PIN, 4, 1024) &&
+        encoder.init(encoder_pins, 3, 1024) &&
         controller.init(INT1, INT2, INT3, INT4, EN1, EN2, INT5, INT6, 2, 1024)) {
 
         // 2. init range-finder:
@@ -126,6 +127,9 @@ int main() {
 
         sensor.setBus(&i2c1_inst);
         sensor.setTimeout(500);
+
+        gpio_set_irq_callback(gpio_callback);
+        irq_set_enabled(IO_IRQ_BANK0, true);
 
         if (!sensor.init()) {
             printf("Failed to detect and initialize sensor!\n");

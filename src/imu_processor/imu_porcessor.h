@@ -47,8 +47,7 @@ class IMUProcessor {
     void process();
 
  public:
-    bool init(int irq_pin, gpio_irq_callback_t gpio_irq_callback, int task_prio,
-              int stack_size);
+    bool init(int irq_pin, int task_prio, int stack_size);
     void irq_handler(BaseType_t &xHigherPriorityTaskWoken);
 
     void start_bias_calibration();

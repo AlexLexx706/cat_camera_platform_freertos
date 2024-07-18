@@ -14,6 +14,7 @@ struct SimplePID {
 	float d_value;
 	float p_value;
     float feed_forward = 0.0;
+    float backlash = 0.0;
 
  public:
     SimplePID(float _p, float _i, float _d, float _max_int, float _feed_forward):
@@ -42,7 +43,8 @@ struct SimplePID {
         if (fabs(int_value) > max_int) {
             int_value = int_value > 0 ? max_int : -max_int;
         }
-        return p_value + int_value + d_value + target * feed_forward;
+        float res = p_value + int_value + d_value + target * feed_forward;
+        return res > 0. ? res + backlash : res - backlash;
     }
 };
 

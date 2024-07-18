@@ -18,7 +18,7 @@ static CommandParser command_parser;
 Settings *settings = reinterpret_cast<Settings *>(FlashStore::store_ptr);
 
 // write error to port
-static void print_er(const char *prefix, const char *msg) {
+void print_er(const char *prefix, const char *msg) {
     assert(prefix);
     assert(msg);
 
@@ -26,8 +26,9 @@ static void print_er(const char *prefix, const char *msg) {
     int prefix_len = strlen(prefix);
     int len;
     if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "ER%03X%%%s%%%s\n",
-                       strlen(msg) + prefix_len + 2, prefix, msg);
+        len = snprintf(
+            buffer, sizeof(buffer), "ER%03X%%%s%%%s\n",
+            strlen(msg) + prefix_len + 2, prefix, msg);
     } else {
         len = snprintf(buffer, sizeof(buffer), "ER%03X%s\n", strlen(msg), msg);
     }
@@ -36,7 +37,7 @@ static void print_er(const char *prefix, const char *msg) {
 }
 
 // write responce msg
-static void print_re(const char *prefix, const char *msg) {
+void print_re(const char *prefix, const char *msg) {
     assert(prefix);
     assert(msg);
 
@@ -46,8 +47,9 @@ static void print_re(const char *prefix, const char *msg) {
     int len;
 
     if (prefix_len) {
-        len = snprintf(buffer, sizeof(buffer), "RE%03X%%%s%%%s\n",
-                       strlen(prefix) + msg_len + 2, prefix, msg);
+        len = snprintf(
+            buffer, sizeof(buffer), "RE%03X%%%s%%%s\n",
+            strlen(prefix) + msg_len + 2, prefix, msg);
 
         puts_raw(buffer);
     } else if (msg_len) {
@@ -578,6 +580,13 @@ static void process_controller(const char *prefix, const char *cmd,
     }
 }
 
+constexpr auto motor_controller_path = "/motor_controller/";
+constexpr auto motor_controller_path_len = strlen(motor_controller_path);
+void process_motor_controller(
+        const char *prefix, const char *cmd,
+        const char *parameter, const char *value);
+
+
 static void command_parser_cmd_cb(const char *prefix, const char *cmd,
                                   const char *parameter, const char *value) {
     // echo command
@@ -591,10 +600,10 @@ static void command_parser_cmd_cb(const char *prefix, const char *cmd,
             process_imu(prefix, cmd, &parameter[imu_path_len], value);
         } else if (strncmp(parameter, encoder_path, encoder_path_len) == 0) {
             process_encoder(prefix, cmd, &parameter[encoder_path_len], value);
-        } else if (strncmp(parameter, controller_path, controller_path_len) ==
-                   0) {
-            process_controller(prefix, cmd, &parameter[controller_path_len],
-                               value);
+        } else if (strncmp(parameter, controller_path, controller_path_len) == 0) {
+            process_controller(prefix, cmd, &parameter[controller_path_len], value);
+        } else if (strncmp(parameter, motor_controller_path, motor_controller_path_len) == 0) {
+            process_motor_controller(prefix, cmd, &parameter[motor_controller_path_len], value);
             // print command
         } else if (strcmp(cmd, "print") == 0) {
             // print current version

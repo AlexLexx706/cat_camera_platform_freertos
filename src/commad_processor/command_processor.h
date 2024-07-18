@@ -164,7 +164,10 @@ set,/imu/wheel_base,0.2585
 
 */
 namespace CommandProcessor {
-void init();
-void process(char symbol);
+    void init();
+    void process(char symbol);
 }; // namespace CommandProcessor
+void print_er(const char *prefix, const char *msg);
+void print_re(const char *prefix, const char *msg);
+
 #endif // COMMAND_PROCESSOR_H

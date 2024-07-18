@@ -2,10 +2,8 @@
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 #include "imu_processor/imu_porcessor.h"
-#include "encoder/encoder.h"
 #include "pico/time.h"
 #include <math.h>
-#include <stdio.h>
 
 bool Controller::init(
         uint _int1, uint _int2,
@@ -50,9 +48,6 @@ bool Controller::init(
     slice_num = pwm_gpio_to_slice_num(int5);
     pwm_set_wrap(slice_num, max_pwm_value);
     pwm_set_enabled(slice_num, true);
-
-    motor_sin_test.set_ampliture(16384);
-    motor_sin_test.set_active(true);
     return true;
 }
 
@@ -61,7 +56,7 @@ void Controller::process() {
     TickType_t xLastWakeTime;
     const TickType_t xFrequency = pdMS_TO_TICKS(period_ms);
 
-    float period = 10.f;
+    float period = 20.f;
     uint32_t cur_time_ms;
     float control_value;
     uint16_t pwm_value;
@@ -69,18 +64,13 @@ void Controller::process() {
     xLastWakeTime = xTaskGetTickCount();
 
     for (;;) {
-        float motor_pwm = motor_sin_test.get_value();
-        set_motor_pwm(motor_pwm);
-        float motor_enc = encoder.get_row(2);
-        printf("%f %f\n", motor_pwm, motor_enc);
+        motor_controller.process();
 
         if (active) {
             float cur_heading = imu_processor.get_angles().x2;
-            float cur_target_heading =
-                sin_test.is_active() ? sin_test.get_value() : target_heading;
+            float cur_target_heading = sin_test.is_active() ? sin_test.get_value() : target_heading;
 
-            float heading_control =
-                heading_pid.compute(cur_heading, cur_target_heading);
+            float heading_control = heading_pid.compute(cur_heading, cur_target_heading);
 
             float cur_speed = imu_processor.get_speed();
             float speed_control = -speed_pid.compute(cur_speed, target_speed);

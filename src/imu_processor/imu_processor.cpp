@@ -5,8 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 
-bool IMUProcessor::init(int irq_pin, gpio_irq_callback_t gpio_irq_callback,
-                        int task_prio, int stack_size) {
+bool IMUProcessor::init(int irq_pin, int task_prio, int stack_size) {
 
     packet_semaphore = xSemaphoreCreateBinary();
     if (packet_semaphore == NULL) {
@@ -27,9 +26,9 @@ bool IMUProcessor::init(int irq_pin, gpio_irq_callback_t gpio_irq_callback,
         printf("Status: %d\n", status);
         return false;
     }
-
-    gpio_set_irq_enabled_with_callback(irq_pin, GPIO_IRQ_EDGE_RISE, true,
-                                       gpio_irq_callback);
+    gpio_set_dir(irq_pin, GPIO_IN);
+    gpio_pull_up(irq_pin);
+    gpio_set_irq_enabled(irq_pin, GPIO_IRQ_EDGE_RISE, true);
 
     // set output data rate to 12.5 Hz
     imu.setAccelODR(ICM42688::odr1k);

@@ -3,10 +3,12 @@ add_executable(${NAME}
         VL53L0X/VL53L0X.cpp
         imu_processor/imu_processor.cpp
         commad_processor/command_processor.cpp
+        commad_processor/motor_controller.cpp
         flash_store/flash_store.cpp
         main.cpp
         encoder/encoder.cpp
         controller/controller.cpp
+        controller/motor_controller.cpp
         )
 
 # Pull in our pico_stdlib which pulls in commonly used features
