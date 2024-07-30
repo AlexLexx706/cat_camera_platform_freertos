@@ -9,7 +9,7 @@ MotorController::MotorController(Controller &_controller)
     : pid(0.1, 0, 0, 1900, 0), controller(_controller) {
     sin_test.set_ampliture(16384);
     sin_test.set_period(30);
-    sin_test.set_active(true);
+    sin_test.set_active(false);
 }
 
 void MotorController::process() {

@@ -22,7 +22,7 @@ class Controller {
     uint int5;
     uint int6;
 
-    int period_ms = 40;
+    int period_ms = 10;
     bool active = false;
     float target_heading = 0.f;
     SimplePID heading_pid;

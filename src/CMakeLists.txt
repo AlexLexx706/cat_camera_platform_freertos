@@ -9,6 +9,7 @@ add_executable(${NAME}
         encoder/encoder.cpp
         controller/controller.cpp
         controller/motor_controller.cpp
+        controller/stepper_motor_controller.cpp
         )
 
 # Pull in our pico_stdlib which pulls in commonly used features

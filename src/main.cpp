@@ -13,6 +13,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include "controller/stepper_motor_controller.h"
 
 #define ENC_A1 8
 #define ENC_B1 9
@@ -40,6 +41,14 @@
 #define  EN1 0
 #define  EN2 1
 
+
+#define DIR_PIN 16
+#define STEP_PIN 15
+#define EN_PIN 14
+
+#define BUTTON_END_PIN 26
+#define BUTTON_START_PIN 27
+
 #define UART_ID uart0
 #define BAUD_RATE 576000
 
@@ -57,6 +66,8 @@ static SemaphoreHandle_t imu_data_semaphore;
 IMUProcessor imu_processor;
 Encoder encoder;
 Controller controller;
+StepperMotorController stepper_motor_controller;
+
 
 static void gpio_callback(uint gpio, uint32_t events) {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -114,8 +125,8 @@ int main() {
     //set gpio irq callback
     if (imu_processor.init(ICM42688_IRQ_PIN, 4, 1024) &&
         encoder.init(encoder_pins, 3, 1024) &&
-        controller.init(INT1, INT2, INT3, INT4, EN1, EN2, INT5, INT6, 2, 1024)) {
-
+        controller.init(INT1, INT2, INT3, INT4, EN1, EN2, INT5, INT6, 2, 1024) &&
+        stepper_motor_controller.init(DIR_PIN, STEP_PIN, EN_PIN, BUTTON_START_PIN, BUTTON_END_PIN, 2, 1024)) {
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);
         gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);

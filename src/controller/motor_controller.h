@@ -12,9 +12,6 @@ class MotorController {
 
     float target_speed = 0.;
     bool active = true;
-
-    int32_t prev_enc_value;
-    uint32_t prev_time = 0;
     int debug_level = 0;
 public:
     MotorController(Controller &_controller);
