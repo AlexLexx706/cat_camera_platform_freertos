@@ -1,3 +1,6 @@
 [submodule "lib/FreeRTOS-Kernel"]
 	path = lib/FreeRTOS-Kernel
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel
+[submodule "src/AccelStepper"]
+	path = src/AccelStepper
+	url = git@github.com:swissbyte/AccelStepper.git

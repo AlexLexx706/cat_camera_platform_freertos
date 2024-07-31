@@ -10,7 +10,13 @@ add_executable(${NAME}
         controller/controller.cpp
         controller/motor_controller.cpp
         controller/stepper_motor_controller.cpp
+        AccelStepper/src/AccelStepper.cpp
         )
+
+target_include_directories(${NAME} PRIVATE
+    utils
+    AccelStepper/src
+)
 
 # Pull in our pico_stdlib which pulls in commonly used features
 target_link_libraries(${NAME} 
@@ -29,6 +35,10 @@ target_include_directories(${NAME} PRIVATE
      
 target_compile_definitions(${NAME} PRIVATE
     configNUM_CORES=2
+)
+
+target_compile_definitions(${NAME} PRIVATE
+    ARDUINO=111
 )
 
 # create map/bin/hex file etc.

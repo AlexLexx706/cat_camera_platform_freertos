@@ -3,6 +3,7 @@
 #include "FreeRTOS.h"
 #include <stdint.h>
 #include <task.h>
+#include "AccelStepper.h"
 
 class StepperMotorController {
     TaskHandle_t task;
