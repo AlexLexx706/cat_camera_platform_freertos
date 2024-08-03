@@ -15,7 +15,12 @@ class StepperMotorController {
     uint enable_pin = 0;
     uint start_btn_pin = 0;
     uint end_btn_pin = 0;
-    bool loop_mode = true;
+    AccelStepper * stepper = nullptr;
+    int state = 0;
+    long max_steps = 0;
+    float init_speed = 100;
+    uint32_t start_time;
+
     static void thread_handler(void *);
 
 public:
