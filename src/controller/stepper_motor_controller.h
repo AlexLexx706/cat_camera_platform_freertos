@@ -36,7 +36,7 @@ class StepperMotorController {
     void process();
     SinTets &get_sin_test() { return sin_test; }
 
-    void moveTo(long absolute);
+    void move_to(long absolute);
     void set_max_speed(float speed);
     float get_max_speed() const;
     void set_acceleration(float acceleration);
@@ -52,4 +52,6 @@ class StepperMotorController {
     void set_debug_level(int _debug_level) { debug_level = _debug_level; }
     int get_debug_level() const { return debug_level; }
 };
+
+extern StepperMotorController stepper_motor_controller;
 #endif //_STEPPER_MOTOR_CONTROLLER_H_

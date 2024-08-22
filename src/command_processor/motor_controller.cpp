@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "controller/controller.h"
-#include "commad_processor/command_processor.h"
+#include "command_processor/command_processor.h"
 
 /*
  * /motor_controller/active                   (set/print)

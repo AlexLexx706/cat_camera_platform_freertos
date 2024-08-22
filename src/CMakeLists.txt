@@ -2,8 +2,9 @@ add_executable(${NAME}
         ICM42688/ICM42688.cpp
         VL53L0X/VL53L0X.cpp
         imu_processor/imu_processor.cpp
-        commad_processor/command_processor.cpp
-        commad_processor/motor_controller.cpp
+        command_processor/command_processor.cpp
+        command_processor/motor_controller.cpp
+        command_processor/stepper_motor_controller.cpp
         flash_store/flash_store.cpp
         main.cpp
         encoder/encoder.cpp

@@ -110,6 +110,7 @@ void StepperMotorController::process() {
                     printf("4. init complete\n");
                 }
                 state = 2;
+                // stepper->disableOutputs();
                 // move to the end
             } else {
                 stepper->setMaxSpeed(init_speed);
@@ -154,10 +155,11 @@ void StepperMotorController::process() {
             }
             stepper->run();
         }
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
-void StepperMotorController::moveTo(long absolute) {
+void StepperMotorController::move_to(long absolute) {
     assert(stepper);
     if (absolute > max_steps) {
         absolute = max_steps;
@@ -211,8 +213,10 @@ void StepperMotorController::enable_output(bool enable) {
     if (enable != _enable_output) {
         _enable_output = enable;
         if (_enable_output) {
+            printf("enableOutputs\n");
             stepper->enableOutputs();
         } else {
+            printf("disableOutputs\n");
             stepper->disableOutputs();
         }
     }

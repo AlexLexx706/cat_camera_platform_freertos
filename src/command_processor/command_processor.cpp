@@ -587,6 +587,12 @@ void process_motor_controller(
         const char *parameter, const char *value);
 
 
+constexpr auto stepper_motor_controller_path = "/stepper_motor_controller/";
+constexpr auto stepper_motor_controller_path_len = strlen(stepper_motor_controller_path);
+void process_stepper_motor_controller(
+        const char *prefix, const char *cmd,
+        const char *parameter, const char *value);
+
 static void command_parser_cmd_cb(const char *prefix, const char *cmd,
                                   const char *parameter, const char *value) {
     // echo command
@@ -604,6 +610,8 @@ static void command_parser_cmd_cb(const char *prefix, const char *cmd,
             process_controller(prefix, cmd, &parameter[controller_path_len], value);
         } else if (strncmp(parameter, motor_controller_path, motor_controller_path_len) == 0) {
             process_motor_controller(prefix, cmd, &parameter[motor_controller_path_len], value);
+        } else if (strncmp(parameter, stepper_motor_controller_path, stepper_motor_controller_path_len) == 0) {
+            process_stepper_motor_controller(prefix, cmd, &parameter[stepper_motor_controller_path_len], value);
             // print command
         } else if (strcmp(cmd, "print") == 0) {
             // print current version

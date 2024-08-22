@@ -3,7 +3,7 @@
 #include "hardware/gpio.h"
 #include "imu_processor/imu_porcessor.h"
 #include "encoder/encoder.h"
-#include "commad_processor/command_processor.h"
+#include "command_processor/command_processor.h"
 #include "controller/controller.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
@@ -124,9 +124,9 @@ int main() {
 
     //set gpio irq callback
     if (imu_processor.init(ICM42688_IRQ_PIN, 4, 1024) &&
-        encoder.init(encoder_pins, 3, 1024) &&
-        controller.init(INT1, INT2, INT3, INT4, EN1, EN2, INT5, INT6, 2, 1024) &&
-        stepper_motor_controller.init(DIR_PIN, STEP_PIN, EN_PIN, BUTTON_START_PIN, BUTTON_END_PIN, 2, 1024)) {
+            encoder.init(encoder_pins, 3, 1024) &&
+            controller.init(INT1, INT2, INT3, INT4, EN1, EN2, INT5, INT6, 2, 1024) &&
+            stepper_motor_controller.init(DIR_PIN, STEP_PIN, EN_PIN, BUTTON_START_PIN, BUTTON_END_PIN, 2, 1024)) {
         // 2. init range-finder:
         i2c_init(&i2c1_inst, 400 * 1000);
         gpio_set_function(SDA_PIN, GPIO_FUNC_I2C);

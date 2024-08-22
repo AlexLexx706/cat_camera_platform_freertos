@@ -14,7 +14,7 @@ class IMUProcessor {
     bool allow_dynamic_bias = true;
     float bias_rate_threshold = 0.1f;
     float gyro_bias_tau = 20.f;
-    int debug_level = 0;
+    int debug_level = 2;
     uint32_t last_print_time_us = 0;
     uint32_t print_period_us = 100000;
 
