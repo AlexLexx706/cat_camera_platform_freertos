@@ -78,7 +78,6 @@ constexpr auto imu_path_len = strlen(imu_path);
  * /imu/encoder_heading                 (set/print)
  * /imu/encoder_pos/x                   (set/print)
  * /imu/encoder_pos/y                   (set/print)
-
  */
 static void process_imu(const char *prefix, const char *cmd,
                         const char *parameter, const char *value) {
@@ -413,6 +412,18 @@ constexpr auto controller_path_len = strlen(controller_path);
  * /controller/speed_pid/d              (set/print)
  * /controller/speed_pid/max_int        (set/print)
  * /controller/target_speed             (set/print)
+ *
+ * /controller/yaw_rate_pid/p              (set/print)
+ * /controller/yaw_rate_pid/i              (set/print)
+ * /controller/yaw_rate_pid/d              (set/print)
+ * /controller/yaw_rate_pid/max_int        (set/print)
+ * /controller/yaw_rate_pid/feed_forward   (set/print)
+ * /controller/target_yaw_rate             (set/print)
+
+ * /controller/ysp_gen/max_speed             (set/print)
+ * /controller/ysp_gen/accel                 (set/print)
+ * /controller/use_yaw_pos_control           (set/print)
+ * /controller/target_yaw                    (set/print)
  */
 static void process_controller(const char *prefix, const char *cmd,
                                const char *parameter, const char *value) {
@@ -476,6 +487,53 @@ static void process_controller(const char *prefix, const char *cmd,
                 print_re(prefix, "");
             } else if (strcmp(parameter, "target_speed") == 0) {
                 controller.set_target_speed(atof(value));
+                print_re(prefix, "");
+
+            } else if (strcmp(parameter, "spg/max_speed") == 0) {
+                controller.get_speed_profile_generator().set_max_speed(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "spg/accel") == 0) {
+                controller.get_speed_profile_generator().set_accel(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "spg/use") == 0) {
+                controller.set_use_pos_control(atoi(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "spg/target") == 0) {
+                controller.get_speed_profile_generator().set_target_pos(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "pos") == 0) {
+                controller.set_cur_pos(atof(value));
+                print_re(prefix, "");
+
+            } else if (strcmp(parameter, "yaw_rate_pid/p") == 0) {
+                controller.get_yaw_rate_pid().p = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "yaw_rate_pid/i") == 0) {
+                controller.get_yaw_rate_pid().i = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "yaw_rate_pid/d") == 0) {
+                controller.get_yaw_rate_pid().d = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "yaw_rate_pid/max_int") == 0) {
+                controller.get_yaw_rate_pid().max_int = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "yaw_rate_pid/feed_forward") == 0) {
+                controller.get_yaw_rate_pid().feed_forward = atof(value);
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "target_yaw_rate") == 0) {
+                controller.set_target_yaw_rate(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "yaw_spg/max_speed") == 0) {
+                controller.get_yaw_speed_profile_generator().set_max_speed(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "yaw_spg/accel") == 0) {
+                controller.get_yaw_speed_profile_generator().set_accel(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "yaw_spg/target") == 0) {
+                controller.get_yaw_speed_profile_generator().set_target_pos(atof(value));
+                print_re(prefix, "");
+            } else if (strcmp(parameter, "yaw_spg/use") == 0) {
+                controller.set_use_yaw_pos_control(atoi(value));
                 print_re(prefix, "");
             } else {
                 print_er(prefix, "{6,wrong parameter}");
@@ -571,6 +629,74 @@ static void process_controller(const char *prefix, const char *cmd,
         } else if (strcmp(parameter, "target_speed") == 0) {
             char buffer[32];
             snprintf(buffer, sizeof(buffer), "%f", controller.get_target_speed());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "spg/max_speed") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_profile_generator().get_max_speed());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "spg/accel") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_profile_generator().get_accel());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "spg/is_ready") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_profile_generator().is_ready());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "spg/use") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.is_use_pos_control());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "spg/target") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_profile_generator().get_target_pos());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "pos") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_cur_pos());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_rate_pid/p") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_rate_pid().p);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_rate_pid/i") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_rate_pid().i);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_rate_pid/d") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_rate_pid().d);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_rate_pid/max_int") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_rate_pid().max_int);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_rate_pid/feed_forward") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_rate_pid().feed_forward);
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "target_yaw_rate") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_target_yaw_rate());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_spg/max_speed") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_speed_profile_generator().get_max_speed());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_spg/accel") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_speed_profile_generator().get_accel());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_spg/is_ready") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_speed_profile_generator().is_ready());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_spg/target") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_speed_profile_generator().get_target_pos());
+            print_re(prefix, buffer);
+        } else if (strcmp(parameter, "yaw_spg/use") == 0) {
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%d", controller.is_use_yaw_pos_control());
             print_re(prefix, buffer);
         } else {
             print_er(prefix, "{6,wrong parameter}");

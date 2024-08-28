@@ -5,6 +5,27 @@
 #include <stdint.h>
 #include "task.h"
 
+/*
+ * /encoder/0/row                       (set/print)
+ * /encoder/0/scale                     (set/print)
+ * /encoder/0/value                     (print)
+ *
+ * /encoder/1/row                       (set/print)
+ * /encoder/1/scale                     (set/print)
+ * /encoder/1/value                     (set/print)
+ * /encoder/debug_level                 (set/print)
+ *
+ *  1:  enc_0_row
+ *      enc_1_row
+ *      enc_2_row
+ *
+ *  2:  enc_2_row
+ *      enc_2_speed
+ *
+ * /encoder/state                       (print)
+ * /encoder/save                        (set)
+ */
+
 class Encoder {
     struct EncoderState {
         int8_t last_encoded;

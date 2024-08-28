@@ -55,8 +55,6 @@ void Controller::process() {
     uint32_t time;
     TickType_t xLastWakeTime;
     const TickType_t xFrequency = pdMS_TO_TICKS(period_ms);
-
-    float period = 20.f;
     uint32_t cur_time_ms;
     float control_value;
     uint16_t pwm_value;
@@ -64,54 +62,149 @@ void Controller::process() {
     xLastWakeTime = xTaskGetTickCount();
 
     for (;;) {
-        motor_controller.process();
+        // motor_controller.process();
 
         if (active) {
-            float cur_heading = imu_processor.get_angles().x2;
-            float cur_target_heading = sin_test.is_active() ? sin_test.get_value() : target_heading;
+            uint32_t time = time_us_32();
+            float dt = (time - last_time) / 1e6;
 
-            float heading_control = heading_pid.compute(cur_heading, cur_target_heading);
+            float cur_yaw_rate = imu_processor.get_rate().x2;
+            float cur_yaw = imu_processor.get_angles().x2;
+            float cur_target_yaw_rate;
+            float yaw_rate_control;
 
-            float cur_speed = imu_processor.get_speed();
-            float speed_control = -speed_pid.compute(cur_speed, target_speed);
-
-            set_left_pwm(speed_control + heading_control);
-            set_right_pwm(speed_control - heading_control);
-
-            if (debug_level == 1) {
-                printf("%f %f %f %f %f %f\n",
-                       cur_heading,
-                       cur_target_heading,
-                       heading_pid.p_value,
-                       heading_pid.d_value,
-                       heading_pid.int_value,
-                       heading_control);
-            } else if (debug_level == 2) {
-                printf(
-                    "%f %f %f %f %f %f\n",
-                    cur_speed,
-                    target_speed,
-                    speed_pid.p_value,
-                    speed_pid.d_value,
-                    speed_pid.int_value,
-                    speed_control);
-            } else if (debug_level == 3) {
-                printf("%f %f %f %f %f %f %f %f %f %f %f %f %u\n",
-                    cur_heading,
-                    cur_target_heading,
-                    heading_pid.p_value,
-                    heading_pid.d_value,
-                    heading_pid.int_value,
-                    heading_control,
-                    cur_speed,
-                    target_speed,
-                    speed_pid.p_value,
-                    speed_pid.d_value,
-                    speed_pid.int_value,
-                    speed_control,
-                    time_us_32());
+            // using yaw profile speed control
+            if (use_yaw_pos_control) {
+                if (last_time != 0) {
+                    cur_target_yaw_rate = yaw_speed_profile_generator.evaluate(dt, cur_yaw);
+                    // if ready we not control any more
+                    if (yaw_speed_profile_generator.is_ready()) {
+                        yaw_rate_control = 0.;
+                    // control speed
+                    } else {
+                        yaw_rate_control = yaw_rate_pid.compute(cur_yaw_rate, cur_target_yaw_rate);
+                    }
+                } else {
+                    cur_target_yaw_rate = 0.;
+                    yaw_rate_control = 0.;
+                }
+            // yaw rate control only
+            } else {
+                cur_target_yaw_rate = target_yaw_rate;
+                yaw_rate_control = yaw_rate_pid.compute(cur_yaw_rate, cur_target_yaw_rate);
             }
 
+            float cur_speed = imu_processor.get_speed();
+            float cur_target_speed = 0;
+            float speed_control = 0;
+
+            // using position control with profile of speed
+            if (use_pos_control) {
+                if (last_time != 0) {
+                    cur_pos += cur_speed * dt;
+                    cur_target_speed = speed_profile_generator.evaluate(dt, cur_pos);
+                    if (!speed_profile_generator.is_ready()) {
+                        speed_control = speed_pid.compute(cur_speed, cur_target_speed);
+                    }
+                }
+            // using speed control
+            } else {
+                cur_target_speed = target_speed;
+                speed_control = speed_pid.compute(cur_speed, cur_target_speed);
+            }
+
+            set_left_pwm(speed_control + yaw_rate_control);
+            set_right_pwm(speed_control - yaw_rate_control);
+            last_time = time;
+
+            //send debug
+            if (debug_level) {
+                uint32_t debug_dt = time - last_debug_time_us;
+
+                if (debug_dt >= debug_period_us) {
+                    last_debug_time_us = time - (debug_dt - debug_period_us);
+
+                    //send level 1
+                    if (debug_level == 1) {
+                        printf("%f %f %f %f %f %f %f\n",
+                            cur_yaw_rate,
+                            cur_target_yaw_rate,
+                            yaw_rate_pid.p_value,
+                            yaw_rate_pid.int_value,
+                            yaw_rate_pid.d_value,
+                            yaw_rate_pid.feed_forward_value,
+                            yaw_rate_control);
+                    //send level 2
+                    } else if (debug_level == 2) {
+                        printf("%f %f %f %f %f\n",
+                            dt,
+                            cur_yaw,
+                            yaw_speed_profile_generator.get_target_pos(),
+                            cur_yaw_rate,
+                            cur_target_yaw_rate);
+                    } else if (debug_level == 3) {
+                        printf(
+                            "%f %f %f %f %f %f\n",
+                            cur_speed,
+                            cur_target_speed,
+                            speed_pid.p_value,
+                            speed_pid.d_value,
+                            speed_pid.int_value,
+                            speed_control);
+                    }
+                }
+            }
+
+            // float cur_heading = imu_processor.get_angles().x2;
+            // float cur_target_heading = sin_test.is_active() ? sin_test.get_value() : target_heading;
+
+            // float heading_control = heading_pid.compute(cur_heading, cur_target_heading);
+
+            // float cur_speed = imu_processor.get_speed();
+            // float speed_control = speed_pid.compute(cur_speed, target_speed);
+
+            // set_left_pwm(speed_control + heading_control);
+            // set_right_pwm(speed_control - heading_control);
+
+            // if (debug_level == 1) {
+            //     printf("%f %f %f %f %f %f\n",
+            //            cur_heading,
+            //            cur_target_heading,
+            //            heading_pid.p_value,
+            //            heading_pid.d_value,
+            //            heading_pid.int_value,
+            //            heading_control);
+            // } else if (debug_level == 2) {
+            //     printf(
+            //         "%f %f %f %f %f %f\n",
+            //         cur_speed,
+            //         target_speed,
+            //         speed_pid.p_value,
+            //         speed_pid.d_value,
+            //         speed_pid.int_value,
+            //         speed_control);
+            // } else if (debug_level == 3) {
+            //     printf("%f %f %f %f %f %f %f %f %f %f %f %f %u\n",
+            //         cur_heading,
+            //         cur_target_heading,
+            //         heading_pid.p_value,
+            //         heading_pid.d_value,
+            //         heading_pid.int_value,
+            //         heading_control,
+            //         cur_speed,
+            //         target_speed,
+            //         speed_pid.p_value,
+            //         speed_pid.d_value,
+            //         speed_pid.int_value,
+            //         speed_control,
+            //         time_us_32());
+            // } else if (debug_level == 4) {
+            //     printf("%f %f %f %f\n",
+            //         cur_heading,
+            //         cur_target_heading,
+            //         cur_speed,
+            //         target_speed);
+            // }
         } else {
             set_left_pwm(0);
             set_right_pwm(0);

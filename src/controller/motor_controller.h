@@ -5,6 +5,34 @@
 #include "utils/simple_pid.h"
 #include "utils/sin_test.h"
 
+/*
+ * /motor_controller/active                   (set/print)
+ * /motor_controller/debug_level,0            (set/print)
+ *
+ *  1:  cur_target
+ *      enc_speed pwm
+ *      pid.p_value
+ *      pid.int_value
+ *      pid.d_value
+ *      pid.max_int
+ *      pid.feed_forward
+ *      pid.backlash
+ *
+ * /motor_controller/sin_test/active          (set/print)
+ * /motor_controller/sin_test/period          (set/print) sec
+ * /motor_controller/sin_test/amplitude       (set/print)
+ * /motor_controller/sin_test/value           (print)
+
+ * /motor_controller/speed_pid/p              (set/print)
+ * /motor_controller/speed_pid/i              (set/print)
+ * /motor_controller/speed_pid/d              (set/print)
+ * /motor_controller/speed_pid/max_int        (set/print)
+ * /motor_controller/speed_pid/feed_forward   (set/print)
+ * /motor_controller/speed_pid/backlash       (set/print)
+ *
+ * /motor_controller/target_speed             (set/print)
+ */
+
 class MotorController {
     SimplePID pid;
     SinTets sin_test;

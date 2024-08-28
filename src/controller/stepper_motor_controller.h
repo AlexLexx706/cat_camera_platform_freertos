@@ -6,9 +6,22 @@
 #include <stdint.h>
 #include <task.h>
 
+/*
+ * /stepper_motor_controller/move (set)
+ * /stepper_motor_controller/max_speed (set/print)
+ * /stepper_motor_controller/acceleration (set/print)
+ * /stepper_motor_controller/speed (print)
+ * /stepper_motor_controller/distance_to_go (print)
+ * /stepper_motor_controller/target_position (print)
+ * /stepper_motor_controller/current_position (print)
+ * /stepper_motor_controller/output (set/print)
+ * /stepper_motor_controller/running (print)
+ * /stepper_motor_controller/debug_level (set/print)
+ */
+
 class StepperMotorController {
     TaskHandle_t task;
-    int debug_level = 1;
+    int debug_level = 0;
     uint dir_pin = 0;
     uint step_pin = 0;
     uint enable_pin = 0;

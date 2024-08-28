@@ -22,6 +22,7 @@
 void process_stepper_motor_controller(
         const char *prefix, const char *cmd,
         const char *parameter, const char *value) {
+
     if (strcmp(cmd, "set") == 0) {
         if (value != nullptr) {
             if (strcmp(parameter, "move") == 0) {

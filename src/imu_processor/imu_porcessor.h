@@ -7,6 +7,56 @@
 #include "task.h"
 #include "utils/Vector3d.h"
 
+/*
+ * /imu/clb/gyro_bias/start             (set)
+ * /imu/clb/gyro_bias/stop              (set)
+ * /imu/clb/gyro_bias/save              (set)
+ * /imu/clb/gyro_bias/state             (print)
+ * /imu/gyro_bias/x                     (set/print)
+ * /imu/gyro_bias/y                     (set/print)
+ * /imu/gyro_bias/z                     (set/print)
+ * /imu/debug_level                     (set/print)
+ *
+ *      1:  gyro_bias.x0
+ *          gyro_bias.x1
+ *          gyro_bias.x2
+ *          internal_gyro_bias.x0
+ *          internal_gyro_bias.x1
+ *          internal_gyro_bias.x2
+ *          angles.x0
+ *          angles.x1
+ *          angles.x2
+ *          gyro_rate.x0
+ *          gyro_rate.x1
+ *          gyro_rate.x2
+ *
+ *      2:  encoder_speed_ms[0]
+ *          encoder_speed_ms[1]
+ *          mid_encoder_speed_ms
+ *
+ *      3:  pos_0
+ *          pos_1
+ *          angles_2
+ *          mid_encoder_speed_m/s
+ *
+ *      4:  encoder_pos_0
+ *          encoder_pos_1
+ *          heading
+ *          angles_2
+ *          mid_encoder_speed_m/s
+ *          encoder_val_0
+ *          encoder_va_1
+ *
+ * /imu/heading                         (set/print)
+ *
+ * /imu/wheel_base                      (set/print)
+ * /imu/encoder_omega                   (print)
+ * /imu/encoder_heading                 (set/print)
+ * /imu/encoder_pos/x                   (set/print)
+ * /imu/encoder_pos/y                   (set/print)
+ */
+
+
 class IMUProcessor {
 
     ICM42688 imu;
@@ -14,7 +64,7 @@ class IMUProcessor {
     bool allow_dynamic_bias = true;
     float bias_rate_threshold = 0.1f;
     float gyro_bias_tau = 20.f;
-    int debug_level = 2;
+    int debug_level = 0;
     uint32_t last_print_time_us = 0;
     uint32_t print_period_us = 100000;
 
@@ -55,6 +105,7 @@ class IMUProcessor {
     bool is_bias_clb_on() const { return state == BiasClb; }
     void set_bias(const Vector3D &bias) { gyro_bias = bias; }
     const Vector3D &get_bias() const { return gyro_bias; }
+    const Vector3D & get_rate() const { return gyro_rate; }
     void set_gyro_bias_tau(float tau) { gyro_bias_tau = tau; }
     float get_gyro_bias_tau() const { return gyro_bias_tau; }
     void set_debug_level(int _debug) { debug_level = _debug; }
