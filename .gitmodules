@@ -3,4 +3,4 @@
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel
 [submodule "src/AccelStepper"]
 	path = src/AccelStepper
-	url = git@github.com:swissbyte/AccelStepper.git
+	url = git@github.com:AlexLexx706/AccelStepper.git
