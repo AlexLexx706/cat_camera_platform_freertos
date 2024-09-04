@@ -71,18 +71,15 @@ void Controller::process() {
             float cur_yaw_rate = imu_processor.get_rate().x2;
             float cur_yaw = imu_processor.get_angles().x2;
             float cur_target_yaw_rate;
-            float yaw_rate_control;
+            float yaw_rate_control = 0;
 
             // using yaw profile speed control
             if (use_yaw_pos_control) {
                 if (last_time != 0) {
                     cur_target_yaw_rate = yaw_speed_profile_generator.evaluate(dt, cur_yaw);
-                    // if ready we not control any more
-                    if (yaw_speed_profile_generator.is_ready()) {
-                        yaw_rate_control = 0.;
-                    // control speed
-                    } else {
-                        yaw_rate_control = yaw_rate_pid.compute(cur_yaw_rate, cur_target_yaw_rate);
+
+                    if (fabs(cur_target_yaw_rate - cur_yaw_rate) >= 6.) {
+                       yaw_rate_control = yaw_rate_pid.compute(cur_yaw_rate, cur_target_yaw_rate);
                     }
                 } else {
                     cur_target_yaw_rate = 0.;
@@ -103,7 +100,8 @@ void Controller::process() {
                 if (last_time != 0) {
                     cur_pos += cur_speed * dt;
                     cur_target_speed = speed_profile_generator.evaluate(dt, cur_pos);
-                    if (!speed_profile_generator.is_ready()) {
+
+                    if (fabs(cur_target_speed) > 0.02) {
                         speed_control = speed_pid.compute(cur_speed, cur_target_speed);
                     }
                 }

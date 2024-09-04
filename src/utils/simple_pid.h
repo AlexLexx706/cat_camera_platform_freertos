@@ -29,6 +29,7 @@ struct SimplePID {
     float compute(float current, float target) {
         // 9. process PID controller for rate
         float error = target - current;
+
         p_value = error * p;
 
         if (first == 0) {

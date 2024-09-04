@@ -640,7 +640,7 @@ static void process_controller(const char *prefix, const char *cmd,
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "spg/is_ready") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", controller.get_speed_profile_generator().is_ready());
+            snprintf(buffer, sizeof(buffer), "%d", controller.get_speed_profile_generator().is_ready());
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "spg/use") == 0) {
             char buffer[32];
@@ -688,7 +688,7 @@ static void process_controller(const char *prefix, const char *cmd,
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "yaw_spg/is_ready") == 0) {
             char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%f", controller.get_yaw_speed_profile_generator().is_ready());
+            snprintf(buffer, sizeof(buffer), "%d", controller.get_yaw_speed_profile_generator().is_ready());
             print_re(prefix, buffer);
         } else if (strcmp(parameter, "yaw_spg/target") == 0) {
             char buffer[32];

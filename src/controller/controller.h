@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "controller/motor_controller.h"
 #include "utils/sin_test.h"
-#include "utils/speed_profile_generator.h"
+#include "utils/speed_profile_genarator.h"
 
 /*
  * /controller/active (set/print)
@@ -98,14 +98,14 @@ class Controller {
     uint int6;
 
     int period_ms = 10;
-    bool active = false;
+    bool active = true;
     float target_heading = 0.f;
     SimplePID heading_pid;
     int debug_level = 0;
 
     float target_speed = 0.;
     SimplePID speed_pid;
-    bool use_pos_control = false;
+    bool use_pos_control = true;
     SpeedProfileGenerator speed_profile_generator;
     float cur_pos = 0.;
 
@@ -117,7 +117,7 @@ class Controller {
     uint32_t debug_period_us = 50000;
 
     SpeedProfileGenerator yaw_speed_profile_generator;
-    bool use_yaw_pos_control = false;
+    bool use_yaw_pos_control = true;
     uint32_t last_time = 0;
 
 private:
@@ -133,9 +133,9 @@ private:
             heading_pid(380, 10, 960, 1900, 0),
             speed_pid(0, 600, 0, 5000, 15600),
             motor_controller(*this),
-            yaw_rate_pid(20, 8, 30, 3000, 40) {
-        yaw_speed_profile_generator.set_accel(45.);
-        yaw_speed_profile_generator.set_max_speed(90.);
+            yaw_rate_pid(20, 0.5, 20, 1000, 10) {
+        yaw_speed_profile_generator.set_accel(90);
+        yaw_speed_profile_generator.set_max_speed(90);
 
         speed_profile_generator.set_accel(0.1);
         speed_profile_generator.set_max_speed(1.);
